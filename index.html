@@ -371,8 +371,21 @@ async function syncCloudSave() {
       return;
     }
 
+    const cloudSave = {
+      ...S,
+      shards: 0,
+      opened: 0,
+      spent: 0,
+      pity: 0,
+      inv: {},
+      best: {},
+      pc: {},
+      pv: {},
+      stash: []
+    };
+    
     const { data, error } = await db.rpc('sync_my_save', {
-      save: S,
+      save: cloudSave,
       expected_imported_at: cloudSaveTimestamp
     });
 
@@ -434,7 +447,8 @@ const save=()=>{
       toast('Saving failed','Storage may be full or blocked. Export a save code to keep your progress.','');
     }
   }
-};let P={rm:!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches),cb:false,vol:1,hap:true};try{Object.assign(P,JSON.parse(localStorage.getItem(PK)||'{}'))}catch(e){}
+};
+let P={rm:!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches),cb:false,vol:1,hap:true};try{Object.assign(P,JSON.parse(localStorage.getItem(PK)||'{}'))}catch(e){}
 const saveP=()=>{try{localStorage.setItem(PK,JSON.stringify(P))}catch(e){}};
 let lastSh=null,lastCH=false,cfil='all';
 const cfPass=(i,n,vc)=>cfil==='all'||(cfil==='owned'&&n)||(cfil==='missing'&&!n)||(cfil==='var'&&(vc||(S.pv&&S.pv[i])))||(cfil==='ecl'&&ITEMS[i].ecl);
