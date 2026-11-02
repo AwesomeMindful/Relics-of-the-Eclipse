@@ -369,6 +369,7 @@ if (authError || !user || user.id !== cloudSyncUserId) {
   clearTimeout(cloudSyncTimer);
   showStatus('Cloud sync paused. Please load or import the save for this account.');
   return;
+}
 
     const { data, error } = await db.rpc('sync_my_save', {
       save: S,
