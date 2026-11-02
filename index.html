@@ -531,6 +531,40 @@ $('scp').onclick=async()=>{const t=$('scd');t.select();try{await navigator.clipb
 $('sim').onclick=()=>{const t=$('scd').value.trim();let o;try{if(!t.startsWith('RLQ1:'))throw 0;o=JSON.parse(decodeURIComponent(escape(atob(t.slice(5)))));if(!o||typeof o.shards!=='number'||typeof o.inv!=='object')throw 0}catch(e){$('sm').textContent='That code is not valid.';return}
  if(!imp){imp=true;$('sm').textContent='This replaces your current collection. Tap Import again to confirm.';setTimeout(()=>{imp=false},5000);return}
  imp=false;snapBak();S=migrate(o);save();show=null;$('res').innerHTML='<p>Save code imported.</p>';hud();tiles();$('sv').hidden=true};
+
+$('accountImport').onclick = async () => {
+  if (CH) {
+    $('sm').textContent = 'Finish or abandon the run before importing.';
+    return;
+  }
+
+  const { data: { user }, error: authError } = await db.auth.getUser();
+
+  if (authError || !user) {
+    $('sm').textContent = 'Please log in first.';
+    return;
+  }
+
+  const btn = $('accountImport');
+  btn.disabled = true;
+  $('sm').textContent = 'Importing save to your account...';
+
+  save();
+
+  const { error } = await db.rpc('import_my_save', {
+    save: S
+  });
+
+  btn.disabled = false;
+
+  if (error) {
+    $('sm').textContent = 'Import failed: ' + error.message;
+    return;
+  }
+
+  $('sm').textContent = 'Your save was successfully imported to your account!';
+};
+
 $('svx').onclick=()=>{$('sv').hidden=true};
 /* star chart */
 const seenI=i=>(S.inv[i]||0)>0||S.best[i]!==undefined;
