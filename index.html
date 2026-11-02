@@ -770,14 +770,13 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
 
     showStatus('Creating account...');
 
-    const { data, error } = await db.auth.signUp({
-      email,
-      password
-      options: {
-        emailRedirectTo: 'https://awesomemindful.github.io/Relics-of-the-Eclipse/'
-  }
-    });
-
+  const { data, error } = await db.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: 'https://awesomemindful.github.io/Relics-of-the-Eclipse/'
+    }
+  });
     if (error) {
       showStatus(error.message);
       return;
