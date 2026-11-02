@@ -314,7 +314,7 @@ const db = createClient(
 console.log('Supabase connected:', !!db);
 const W=[{n:'Unmarked',m:.05},{n:'Lustrous',m:.2},{n:'Aged',m:.45},{n:'Cracked',m:.75},{n:'Fading',m:1}];
 const wearOf=e=>W.find(w=>e<w.m)||W[4];
-const SAVE_V=2,BAK=KEY+'-bak',BADK=KEY+'-corrupt',PK='reliquary-prefs';let loadNote='',lastBak=0,saveWarned=false,ecl=false,MG=null;
+const KEY='reliquary-v1',SAVE_V=2,BAK=KEY+'-bak',BADK=KEY+'-corrupt',PK='reliquary-prefs';let loadNote='',lastBak=0,saveWarned=false,ecl=false,MG=null;
 const DEF=()=>({v:SAVE_V,shards:3000,opened:0,spent:0,pity:0,inv:{},best:{},stash:[]});
 const validSave=o=>!!o&&typeof o==='object'&&typeof o.shards==='number'&&isFinite(o.shards)&&!!o.inv&&typeof o.inv==='object';
 function migrate(o){const s=Object.assign(DEF(),o);['inv','best'].forEach(k=>{if(!s[k]||typeof s[k]!=='object'||Array.isArray(s[k]))s[k]={}});if(!Array.isArray(s.stash))s.stash=[];
