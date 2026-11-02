@@ -630,9 +630,6 @@ async function openCase(){
   save();
 }
 
- A={t:0,cards,win,order,times,k:0,tEnd:tt+700,near,hbt:0,v:dp.v,e:dp.e,sd:dp.sd};show=null;
- $('res').innerHTML='<p>The case is unsealing…</p>';$('go').disabled=true;
- tone(130,.6,'sine',.25,0,50);humStart();say('open',3);hud();save()}
 function reveal(){const it=ITEMS[A.win],r=R[it.r],e=A.e,sd=A.sd,v=A.v,w=wearOf(e);humStop();stinger(it.r);if(e<.05){tone(2093,.7,'sine',.05,.25);tone(3136,.7,'sine',.04,.4)}burst(it.r,r.c);if(e<.05)burst(2,'#ffe48f');fl=.5+it.r*.12+(e<.05?.2:0);flc=r.c;
  S.inv[A.win]=(S.inv[A.win]||0)+1;const first=S.inv[A.win]===1;const prev=S.best[A.win];if(prev===undefined||e<prev)S.best[A.win]=e;const nb=prev!==undefined&&e<prev;S.stash.push({i:ITEMS.indexOf(it),e,sd,v});const pk0=ITEMS.indexOf(it);S.pc=S.pc||{};S.pc[pk0]=(S.pc[pk0]||0)+1;if(v){(S.pv=S.pv||{})[pk0]=1}show={it,e,sd,v};A=null;if(v){tone(1175,.6,'sine',.06,.1);tone(1760,.8,'sine',.05,.3);burst(3,'#fff')}react(it.r,e,v,sd);chPull(it,e,v);logPull(it,e,v,sd);
  const st=$('stage');if(it.r>=3){st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake')}
