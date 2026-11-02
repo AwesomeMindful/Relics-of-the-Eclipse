@@ -1290,6 +1290,10 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
     }
   
     showUser(session?.user ?? null);
+  
+    if (nextUserId) {
+      setTimeout(() => loadServerInventory(), 0);
+    }
   });
   window.addEventListener('online', () => {
     if (cloudSyncEnabled) {
