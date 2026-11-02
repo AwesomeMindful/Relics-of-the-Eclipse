@@ -763,26 +763,41 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
   async function register() {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
-
+    const username = document.getElementById('authUsername').value.trim();
+  
+    if (!username || username.length < 3 || username.length > 20) {
+      showStatus('Username must be between 3 and 20 characters.');
+      return;
+    }
+  
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      showStatus('Username can only contain letters, numbers, and underscores.');
+      return;
+    }
+  
     if (!email || password.length < 6) {
       showStatus('Enter an email and a password of at least 6 characters.');
       return;
-      }
-
-    showStatus('Creating account...');
-
-  const { data, error } = await db.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: 'https://awesomemindful.github.io/Relics-of-the-Eclipse/'
     }
-  });
+  
+    showStatus('Creating account...');
+  
+    const { data, error } = await db.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: username
+        },
+        emailRedirectTo: 'https://awesomemindful.github.io/Relics-of-the-Eclipse/'
+      }
+    });
+  
     if (error) {
       showStatus(error.message);
       return;
     }
-
+  
     if (data.session) {
       showUser(data.user);
       showStatus('Account created successfully!');
@@ -790,30 +805,29 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
       showStatus('Account created! Check your email for a confirmation link.');
     }
   }
-
-  async function login() {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!email || !password) {
-      showStatus('Enter your email and password.');
-      return;
+    async function login() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+  
+      if (!email || !password) {
+        showStatus('Enter your email and password.');
+        return;
+      }
+  
+      showStatus('Logging in...');
+  
+      const { data, error } = await db.auth.signInWithPassword({
+        email,
+        password
+      });
+  
+      if (error) {
+        showStatus(error.message);
+        return;
+      }
+  
+      showUser(data.user);
     }
-
-    showStatus('Logging in...');
-
-    const { data, error } = await db.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (error) {
-      showStatus(error.message);
-      return;
-    }
-
-    showUser(data.user);
-  }
 
   async function logout() {
     const { error } = await db.auth.signOut();
