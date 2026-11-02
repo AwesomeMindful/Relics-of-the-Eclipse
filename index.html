@@ -556,8 +556,7 @@ $('accountLoad').onclick = async () => {
   $('sm').textContent = 'Checking account save...';
 
   const { data, error } = await db
-    .from('save_imports')
-    .select('save_data')
+    .select('save_data, imported_at')
     .eq('player_id', user.id)
     .maybeSingle();
 
