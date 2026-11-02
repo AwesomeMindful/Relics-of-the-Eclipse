@@ -1088,6 +1088,17 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
   });
 
   db.auth.onAuthStateChange((_event, session) => {
+    const nextUserId = session?.user?.id ?? null;
+  
+    if (cloudSyncUserId !== nextUserId) {
+      clearTimeout(cloudSyncTimer);
+  
+      cloudSyncEnabled = false;
+      cloudSaveTimestamp = null;
+      cloudSyncAgain = false;
+      cloudSyncUserId = nextUserId;
+    }
+  
     showUser(session?.user ?? null);
   });
 })();
