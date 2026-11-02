@@ -1115,6 +1115,12 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
   
     showUser(session?.user ?? null);
   });
+  window.addEventListener('online', () => {
+    if (cloudSyncEnabled) {
+      showStatus('Internet restored. Syncing cloud save...');
+      scheduleCloudSync();
+    }
+  });
 })();
 </script>
 </body>
