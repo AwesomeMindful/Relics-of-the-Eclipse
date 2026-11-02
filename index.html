@@ -299,7 +299,19 @@ const ITEMS=`0|Cinder Mote|30|5|1|A spark that forgot what it lit.
 2|Totality Bell|300|9|.35|It rings once a century, and always on time.|1
 3|Diamond Ring Reliquary|190|8|.35|A flash of brilliance before the long dark.|1
 4|Syzygy Crown|258|11|.27|Three worlds aligned, and it was cast in the gap.|1`.split('\n').map(l=>{const a=l.split('|');return{r:+a[0],name:a[1],h:+a[2],n:+a[3],k:+a[4],lore:a[5],ecl:a[6]==='1'}});
-const COST=100,PITY=24,KEY='reliquary-v1';
+// Supabase connection
+const SUPABASE_URL = 'https://aantdzrvxtodgzfddscx.supabase.co';
+
+const SUPABASE_ANON_KEY = 'PASTE_YOUR_ANON_KEY_HERE';
+
+const { createClient } = supabase;
+
+const db = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+console.log('Supabase connected:', !!db);
 const W=[{n:'Unmarked',m:.05},{n:'Lustrous',m:.2},{n:'Aged',m:.45},{n:'Cracked',m:.75},{n:'Fading',m:1}];
 const wearOf=e=>W.find(w=>e<w.m)||W[4];
 const SAVE_V=2,BAK=KEY+'-bak',BADK=KEY+'-corrupt',PK='reliquary-prefs';let loadNote='',lastBak=0,saveWarned=false,ecl=false,MG=null;
