@@ -670,18 +670,29 @@ async function loadServerInventory(){
     const {data:{user},error:userError}=await db.auth.getUser();
     if(userError)throw userError;
     if(!user)return;
+
+    // Load authoritative account statistics.
     const {data:profile,error:profileError}=await db
       .from('profiles')
       .select('shards,opened,spent,pity')
       .eq('id',user.id)
       .single();
-    
+
     if(profileError)throw profileError;
-    
-    S.shards=Number(profile.shards);
-    S.opened=Number(profile.opened);
-    S.spent=Number(profile.spent);
-    S.pity=Number(profile.pity);
+
+    // Load authoritative relic inventory.
+    const {data,error}=await db
+      .from('player_items')
+      .select('item_data')
+      .order('created_at',{ascending:true});
+
+    if(error)throw error;
+
+    const inv={};
+    const best={};
+    const pc={};
+    const pv={};
+    const stash=[];
 
     for(const row of data||[]){
       const item=row.item_data;
@@ -705,6 +716,12 @@ async function loadServerInventory(){
       stash.push({i,e,sd,v});
     }
 
+    // Update local game state.
+    S.shards=Number(profile.shards);
+    S.opened=Number(profile.opened);
+    S.spent=Number(profile.spent);
+    S.pity=Number(profile.pity);
+
     S.inv=inv;
     S.best=best;
     S.pc=pc;
@@ -713,17 +730,16 @@ async function loadServerInventory(){
 
     hud();
     tiles();
-    
+
     S.v=SAVE_V;
     localStorage.setItem(KEY,JSON.stringify(S));
 
     console.log('Server inventory loaded:',stash.length,'relics');
 
-  }
-  catch(error){
+  }catch(error){
     console.error('Inventory loading failed:',error);
   }
-} 
+}
 function land(win,e,sd,tag,v){ac();const it=ITEMS[win],r=R[it.r],w=wearOf(e),gr=grant(win,e,sd,v);show={it,e,sd,v};if(v)tone(1175,.6,'sine',.06,.1);stinger(it.r);burst(it.r,r.c);if(e<.05)burst(2,'#ffe48f');fl=.5+it.r*.12;flc=r.c;if(it.r>=3)shake();
  const rs=$('res');rs.style.setProperty('--rar',r.c);rs.innerHTML='<div class="rk"></div><h2></h2><p></p><div class="bar"><i style="left:'+e*100+'%"></i></div><div class="ev"></div>';
  rs.querySelector('.rk').textContent=(tag?tag+': ':'')+rn(it.r)+(gr.first?', new to your collection':'');rs.querySelector('h2').textContent=it.name;rs.querySelector('p').textContent=it.lore;rs.querySelector('.ev').textContent=w.n+', erosion '+e.toFixed(8)+(e<.001?'. Flawless.':gr.nb?'. Your cleanest yet.':'')+extra(v,sd);react(it.r,e,v,sd);hud();tiles();save();setTimeout(qsell,0)}
