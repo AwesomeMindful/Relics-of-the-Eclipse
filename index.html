@@ -650,9 +650,12 @@ let fast=false,IN=null;const TU={r:0,sel:new Set()},ic=$('ic'),ovs=['ins','tu','
 const shake=()=>{if(P.rm)return;const st=$('stage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake')};
 function grant(i,e,sd,v){const first=S.best[i]===undefined&&!(S.inv[i]>0),p=S.best[i];S.inv[i]=(S.inv[i]||0)+1;if(p===undefined||e<p)S.best[i]=e;S.pc=S.pc||{};S.pc[i]=(S.pc[i]||0)+1;if(v){(S.pv=S.pv||{})[i]=1}S.stash.push({i,e,sd,v});if(S.stash.length>1500)S.stash.shift();return{first,nb:p!==undefined&&e<p}}
 async function loadServerInventory(){
-  if(!db||!currentUser)return;
+  if(!db)return;
 
   try{
+    const {data:{user},error:userError}=await db.auth.getUser();
+    if(userError)throw userError;
+    if(!user)return;
     const {data,error}=await db
       .from('player_items')
       .select('item_data')
