@@ -347,6 +347,7 @@ let cloudSaveTimestamp = null;
 let cloudSyncEnabled = false;
 let cloudSyncBusy = false;
 let cloudSyncAgain = false;
+let cloudSyncUserId = null;
 async function syncCloudSave() {
   if (!cloudSyncEnabled || CH) return;
 
