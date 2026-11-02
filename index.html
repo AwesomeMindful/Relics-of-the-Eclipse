@@ -827,7 +827,20 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
     userLabel.textContent =
       'Username: ' + (data.username || 'Not set') +
       ' | Shards: ' + data.shards;
+     
+  const { data: accountSave, error: saveError } = await db
+    .from('save_imports')
+    .select('imported_at')
+    .eq('player_id', user.id)
+    .maybeSingle();
   
+  if (saveError) {
+    showStatus('Account connected, but save status could not be checked: ' + saveError.message);
+  } else if (accountSave) {
+    showStatus('Account connected. A cloud save is available to load.');
+  } else {
+    showStatus('Account connected. No cloud save found yet.');
+  }  
     showStatus('Account connected.');
   }
   async function register() {
