@@ -347,6 +347,56 @@ let cloudSaveTimestamp = null;
 let cloudSyncEnabled = false;
 let cloudSyncBusy = false;
 let cloudSyncAgain = false;
+async function syncCloudSave() {
+  if (!cloudSyncEnabled || CH) return;
+
+  if (cloudSyncBusy) {
+    cloudSyncAgain = true;
+    return;
+  }
+
+  cloudSyncBusy = true;
+
+  try {
+    const { data: { user }, error: authError } =
+      await db.auth.getUser();
+
+    if (authError || !user) return;
+
+    const { data, error } = await db.rpc('sync_my_save', {
+      save: S,
+      expected_imported_at: cloudSaveTimestamp
+    });
+
+    if (error) {
+      showStatus('Cloud sync paused: ' + error.message);
+      cloudSyncEnabled = false;
+      return;
+    }
+
+    cloudSaveTimestamp = data;
+    showStatus('Cloud save synced.');
+  } catch (e) {
+    showStatus('Cloud sync failed. Your local save is safe.');
+  } finally {
+    cloudSyncBusy = false;
+
+    if (cloudSyncAgain && cloudSyncEnabled) {
+      cloudSyncAgain = false;
+      scheduleCloudSync();
+    }
+  }
+}
+
+function scheduleCloudSync() {
+  if (!cloudSyncEnabled) return;
+
+  clearTimeout(cloudSyncTimer);
+
+  cloudSyncTimer = setTimeout(() => {
+    syncCloudSave();
+  }, 2000);
+}
 const save=()=>{if(CH)return;if(!isFinite(S.shards))return;try{const prev=localStorage.getItem(KEY);if(prev&&Date.now()-lastBak>300000){localStorage.setItem(BAK,prev);localStorage.setItem(BAK+'-t',String(Date.now()));lastBak=Date.now()}S.v=SAVE_V;localStorage.setItem(KEY,JSON.stringify(S))}catch(e){if(!saveWarned){saveWarned=true;toast('Saving failed','Storage may be full or blocked. Export a save code to keep your progress.','')}}};
 let P={rm:!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches),cb:false,vol:1,hap:true};try{Object.assign(P,JSON.parse(localStorage.getItem(PK)||'{}'))}catch(e){}
 const saveP=()=>{try{localStorage.setItem(PK,JSON.stringify(P))}catch(e){}};
