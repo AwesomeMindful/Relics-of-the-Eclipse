@@ -743,12 +743,137 @@ async function loadServerInventory(){
 function land(win,e,sd,tag,v){ac();const it=ITEMS[win],r=R[it.r],w=wearOf(e),gr=grant(win,e,sd,v);show={it,e,sd,v};if(v)tone(1175,.6,'sine',.06,.1);stinger(it.r);burst(it.r,r.c);if(e<.05)burst(2,'#ffe48f');fl=.5+it.r*.12;flc=r.c;if(it.r>=3)shake();
  const rs=$('res');rs.style.setProperty('--rar',r.c);rs.innerHTML='<div class="rk"></div><h2></h2><p></p><div class="bar"><i style="left:'+e*100+'%"></i></div><div class="ev"></div>';
  rs.querySelector('.rk').textContent=(tag?tag+': ':'')+rn(it.r)+(gr.first?', new to your collection':'');rs.querySelector('h2').textContent=it.name;rs.querySelector('p').textContent=it.lore;rs.querySelector('.ev').textContent=w.n+', erosion '+e.toFixed(8)+(e<.001?'. Flawless.':gr.nb?'. Your cleanest yet.':'')+extra(v,sd);react(it.r,e,v,sd);hud();tiles();save();setTimeout(qsell,0)}
-function openTen(){if(A)return;const cs=cost();if(CH&&!CH.budget&&S.shards<cs*10)S.shards=5000;if(S.shards<cs*10)return;ac();S.shards-=cs*10;S.spent+=cs*10;S.opened+=10;S.o10=1;if(!CH&&S.om)S.om2=1;show=null;const ps=[];
- for(let k=0;k<10;k++){const dp=drawPull(),i=dp.i,e=dp.e,sd=dp.sd,v=dp.v;ps.push({i,e,sd,v,g:grant(i,e,sd,v)});chPull(ITEMS[i],e,v);logPull(ITEMS[i],e,v,sd)}
- let b=ps[0];ps.forEach(p=>{const a=ITEMS[p.i].r,c=ITEMS[b.i].r;if(a>c||(a===c&&p.e<b.e))b=p});const mr=ITEMS[b.i].r;show={it:ITEMS[b.i],e:b.e,sd:b.sd,v:b.v};react(mr,b.e,b.v,b.sd);
- tone(130,.5,'sine',.2,0,50);stinger(mr);burst(mr,R[mr].c);fl=.4+mr*.1;flc=R[mr].c;if(mr>=3)shake();
- const rs=$('res');rs.style.setProperty('--rar',R[mr].c);rs.innerHTML='<div class="rk"></div><div class="grid" id="tg"></div>';rs.querySelector('.rk').textContent='Ten opened. Best pull: '+ITEMS[b.i].name;
- ps.forEach(p=>{const it=ITEMS[p.i],d=document.createElement('div');d.className='tile';d.style.borderColor=R[it.r].c+'99';d.style.cursor='pointer';d.innerHTML='<canvas width="128" height="128"></canvas><small></small><em></em>';glyph(d.querySelector('canvas').getContext('2d'),it,64,64,44,1,0,p.e,p.sd,p.v);d.querySelector('small').textContent=it.name+(p.g.first?' (new)':'');d.querySelector('em').textContent=(p.v?VN[p.v]+', ':'')+wearOf(p.e).n+' '+p.e.toFixed(4);d.onclick=()=>openInspect(p.i,p.e,p.sd,p.v);d.tabIndex=0;d.setAttribute('role','button');d.setAttribute('aria-label',it.name+', '+R[it.r].n+', tap to inspect');$('tg').appendChild(d)});hud();tiles();save()}
+async function openTen(){
+  if(A||openTen.busy)return;
+
+  const serverTen=!CH&&(S.om||0)===0;
+  let pulls=[];
+
+  if(serverTen){
+    openTen.busy=true;
+    $('go10').disabled=true;
+
+    try{
+      const {data,error}=await db.rpc('open_ten_standard_cases');
+
+      if(error)throw error;
+
+      if(
+        !data||
+        !Array.isArray(data.pulls)||
+        data.pulls.length!==10||
+        data.pulls.some(p=>
+          !Number.isInteger(p.item_index)||
+          p.item_index<0||
+          p.item_index>=ITEMS.length
+        )
+      ){
+        throw new Error('Invalid rewards returned by the server.');
+      }
+
+      S.shards=Number(data.shards);
+      S.opened=Number(data.opened);
+      S.spent=Number(data.spent);
+      S.pity=Number(data.pity);
+
+      pulls=data.pulls.map(p=>({
+        i:p.item_index,
+        e:Number(p.erosion),
+        sd:Number(p.pattern_seed),
+        v:Number(p.variant)
+      }));
+
+    }catch(err){
+      console.error('Open Ten failed:',err);
+      $('res').textContent='Opening failed: '+err.message;
+      $('go10').disabled=false;
+      openTen.busy=false;
+      return;
+    }
+
+  }else{
+    const cs=cost();
+
+    if(CH&&!CH.budget&&S.shards<cs*10)S.shards=5000;
+    if(S.shards<cs*10)return;
+
+    ac();
+    S.shards-=cs*10;
+    S.spent+=cs*10;
+    S.opened+=10;
+
+    if(!CH&&S.om)S.om2=1;
+
+    for(let k=0;k<10;k++){
+      const dp=drawPull();
+      pulls.push(dp);
+    }
+  }
+
+  S.o10=1;
+  show=null;
+
+  const ps=[];
+
+  for(const dp of pulls){
+    const {i,e,sd,v}=dp;
+    ps.push({i,e,sd,v,g:grant(i,e,sd,v)});
+    chPull(ITEMS[i],e,v);
+    logPull(ITEMS[i],e,v,sd);
+  }
+
+  let b=ps[0];
+
+  ps.forEach(p=>{
+    const a=ITEMS[p.i].r,c=ITEMS[b.i].r;
+    if(a>c||(a===c&&p.e<b.e))b=p;
+  });
+
+  const mr=ITEMS[b.i].r;
+
+  show={it:ITEMS[b.i],e:b.e,sd:b.sd,v:b.v};
+  react(mr,b.e,b.v,b.sd);
+
+  tone(130,.5,'sine',.2,0,50);
+  stinger(mr);
+  burst(mr,R[mr].c);
+  fl=.4+mr*.1;
+  flc=R[mr].c;
+
+  if(mr>=3)shake();
+
+  const rs=$('res');
+  rs.style.setProperty('--rar',R[mr].c);
+  rs.innerHTML='<div class="rk"></div><div class="grid" id="tg"></div>';
+  rs.querySelector('.rk').textContent='Ten opened. Best pull: '+ITEMS[b.i].name;
+
+  ps.forEach(p=>{
+    const it=ITEMS[p.i];
+    const d=document.createElement('div');
+
+    d.className='tile';
+    d.style.borderColor=R[it.r].c+'99';
+    d.style.cursor='pointer';
+    d.innerHTML='<canvas width="128" height="128"></canvas><small></small><em></em>';
+
+    glyph(d.querySelector('canvas').getContext('2d'),it,64,64,44,1,0,p.e,p.sd,p.v);
+    d.querySelector('small').textContent=it.name+(p.g.first?' (new)':'');
+    d.querySelector('em').textContent=(p.v?VN[p.v]+', ':'')+wearOf(p.e).n+' '+p.e.toFixed(4);
+    d.onclick=()=>openInspect(p.i,p.e,p.sd,p.v);
+    d.tabIndex=0;
+    d.setAttribute('role','button');
+    d.setAttribute('aria-label',it.name+', '+R[it.r].n+', tap to inspect');
+
+    $('tg').appendChild(d);
+  });
+
+  openTen.busy=false;
+  $('go10').disabled=false;
+
+  hud();
+  tiles();
+  save();
+}
 function openInspect(i,e,sd,v){const it=ITEMS[i],r=R[it.r],w=wearOf(e),was=!!IN;IN={it,e,sd,v,px:0,py:0,tx:0,ty:0};$('ins').hidden=false;const x=$('itx');x.style.setProperty('--rar',r.c);x.innerHTML='<div class="rk"></div><h2></h2><p></p><div class="ev"></div>';x.querySelector('.rk').textContent=rn(it.r)+', '+w.n;x.querySelector('h2').textContent=it.name;x.querySelector('p').textContent=it.lore;x.querySelector('.ev').textContent='erosion '+e.toFixed(8)+extra(v,sd)+'\nMarket value now: '+fmt(net({i,e,sd:sd>0?sd:0,v:v||0}))+' shards.';if(!was)requestAnimationFrame(inspLoop)}
 function inspLoop(){if(!IN)return;const c=ic.getContext('2d'),t=performance.now()/1000;c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,420,420);IN.tx+=(IN.px-IN.tx)*.12;IN.ty+=(IN.py-IN.ty)*.12;ic.style.transform='rotateX('+-IN.ty*16+'deg) rotateY('+IN.tx*16+'deg)';
  glyph(c,IN.it,210,210,150,1,t,IN.e,IN.sd,IN.v);c.save();c.beginPath();c.arc(210,210,150,0,7);c.clip();c.globalCompositeOperation='lighter';
