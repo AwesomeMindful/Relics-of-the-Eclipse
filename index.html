@@ -533,9 +533,9 @@ $('sim').onclick=()=>{const t=$('scd').value.trim();let o;try{if(!t.startsWith('
  if(!imp){imp=true;$('sm').textContent='This replaces your current collection. Tap Import again to confirm.';setTimeout(()=>{imp=false},5000);return}
  imp=false;snapBak();S=migrate(o);save();show=null;$('res').innerHTML='<p>Save code imported.</p>';hud();tiles();$('sv').hidden=true};
 
-$('accountImport').onclick = async () => {
+$('accountLoad').onclick = async () => {
   if (CH) {
-    $('sm').textContent = 'Finish or abandon the run before importing.';
+    $('sm').textContent = 'Finish or abandon the run before loading.';
     return;
   }
 
@@ -546,24 +546,40 @@ $('accountImport').onclick = async () => {
     return;
   }
 
-  const btn = $('accountImport');
+  const btn = $('accountLoad');
   btn.disabled = true;
-  $('sm').textContent = 'Importing save to your account...';
+  $('sm').textContent = 'Checking account save...';
 
-  save();
-
-  const { error } = await db.rpc('import_my_save', {
-    save: S
-  });
+  const { data, error } = await db
+    .from('save_imports')
+    .select('save_data')
+    .eq('player_id', user.id)
+    .maybeSingle();
 
   btn.disabled = false;
 
   if (error) {
-    $('sm').textContent = 'Import failed: ' + error.message;
+    $('sm').textContent = 'Could not load account save: ' + error.message;
     return;
   }
 
-  $('sm').textContent = 'Your save was successfully imported to your account!';
+  if (!data || !validSave(data.save_data)) {
+    $('sm').textContent = 'No valid account save was found.';
+    return;
+  }
+
+  if (!confirm('Load your account save? This replaces your current local collection, but creates a backup first.')) {
+    return;
+  }
+
+  snapBak();
+  S = migrate(data.save_data);
+  save();
+  show = null;
+  hud();
+  tiles();
+
+  $('sm').textContent = 'Account save successfully loaded!';
 };
 
 $('svx').onclick=()=>{$('sv').hidden=true};
