@@ -663,6 +663,58 @@ $('accountLoad').onclick = async () => {
   $('sm').textContent = 'Account save successfully loaded!';
 };
 
+$('accountImport').onclick = async () => {
+  if (CH) {
+    $('sm').textContent = 'Finish or abandon the run before importing.';
+    return;
+  }
+
+  const { data: { user }, error: authError } = await db.auth.getUser();
+
+  if (authError || !user) {
+    $('sm').textContent = 'Please log in first.';
+    return;
+  }
+
+  if (!confirm('Upload your current local save to your account?')) {
+    return;
+  }
+
+  const btn = $('accountImport');
+  btn.disabled = true;
+  $('sm').textContent = 'Importing save...';
+
+  save();
+
+  const { error } = await db.rpc('import_my_save', {
+    save: S
+  });
+
+  if (error) {
+    btn.disabled = false;
+    $('sm').textContent = 'Import failed: ' + error.message;
+    return;
+  }
+
+  const { data, error: readError } = await db
+    .from('save_imports')
+    .select('imported_at')
+    .eq('player_id', user.id)
+    .single();
+
+  btn.disabled = false;
+
+  if (readError) {
+    $('sm').textContent = 'Imported, but timestamp could not be loaded: ' + readError.message;
+    return;
+  }
+
+  cloudSaveTimestamp = data.imported_at;
+  cloudSyncEnabled = true;
+
+  $('sm').textContent = 'Save imported! Automatic cloud syncing is enabled.';
+};
+ 
 $('svx').onclick=()=>{$('sv').hidden=true};
 /* star chart */
 const seenI=i=>(S.inv[i]||0)>0||S.best[i]!==undefined;
