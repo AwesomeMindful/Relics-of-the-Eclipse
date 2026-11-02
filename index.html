@@ -773,6 +773,9 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
     const { data, error } = await db.auth.signUp({
       email,
       password
+      options: {
+        emailRedirectTo: 'https://awesomemindful.github.io/Relics-of-the-Eclipse/'
+  }
     });
 
     if (error) {
