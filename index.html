@@ -853,6 +853,8 @@ $('accountLoad').onclick = async () => {
     return;
   }
 
+  await loadServerInventory();
+ 
   snapBak();
 
   const savedEconomy = {
