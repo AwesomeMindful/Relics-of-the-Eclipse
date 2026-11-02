@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06050d">
+<meta name="description" content="The Reliquary: a free relic-opening simulator with a living shard economy, seeded challenges, and a weekly Eclipse case.">
+<title>The Reliquary</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cormorant+Garamond:ital,wght@0,500;1,500&display=swap">
+<style>
+:root{--bg:#06050d;--ink:#efe8d6;--mut:#a39dbf;--dim:#6f6990;--panel:rgba(20,15,42,.66);--line:rgba(232,198,112,.22);--line2:rgba(160,150,215,.16);--gold:#e8c670;--gold2:#f6e3a1;--rar:#e8c670;--serif:"Cormorant Garamond",Georgia,serif;--disp:Cinzel,Georgia,serif;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(1100px 620px at 50% -12%,rgba(104,66,200,.38),transparent 62%),radial-gradient(760px 520px at 100% 32%,rgba(40,150,175,.12),transparent 62%),radial-gradient(820px 560px at 0% 74%,rgba(200,90,130,.1),transparent 62%),var(--bg);background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.55;background-image:radial-gradient(1px 1px at 20px 30px,rgba(255,255,255,.8),transparent),radial-gradient(1px 1px at 96px 124px,rgba(255,255,255,.6),transparent),radial-gradient(1.5px 1.5px at 168px 62px,rgba(255,255,255,.85),transparent),radial-gradient(1px 1px at 236px 176px,rgba(255,255,255,.5),transparent);background-size:260px 200px}
+.wrap{position:relative;max-width:640px;margin:0 auto;padding:18px 16px 120px;display:flex;flex-direction:column}
+.colL,.colR{display:contents}
+.top{order:0}.hud{order:1}.sky{order:2}.runbar{order:3}.stage{order:4}.res{order:5}.act{order:6}.ctl{order:7}.odds{order:8}.sec{order:9}#grid{order:10}.foot{order:11}
+@media (min-width:1000px){
+ .wrap{max-width:1120px;display:grid;grid-template-columns:minmax(0,540px) minmax(0,1fr);column-gap:36px;align-items:start;padding-bottom:60px}
+ .top{grid-column:1/-1}
+ .colL{display:flex;flex-direction:column;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;padding:2px}.colR{display:block}
+ .stage{max-width:min(540px,calc(100vh - 330px));min-width:min(100%,320px);width:100%;margin-inline:auto}
+ .colL .act{order:5;position:static;margin:12px 0 4px;padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none}
+ .colL .res{order:6}
+ .hud{margin-top:0}
+}
+body:has(.ov:not([hidden])){overflow:hidden}
+.tile:focus-visible,.st[role=button]:focus-visible,#cv:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.st[role=button]{cursor:pointer;border-radius:16px;transition:background .15s}
+.st[role=button]:hover{background:rgba(255,255,255,.05)}
+body.rec .colL,body.rec .colR{display:contents;position:static}
+#hD{position:absolute;right:8px;top:5px;font:600 12px ui-monospace,Menlo,monospace;font-style:normal;opacity:0;pointer-events:none}
+#hD.on{animation:dl 1.6s ease-out}
+@keyframes dl{0%{opacity:0;transform:translateY(4px)}15%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
+.qs{margin-top:8px}
+.kbd{order:12;margin:6px 0 0;text-align:center;font-size:12px;color:var(--dim)}
+@media (hover:none){.kbd{display:none}}
+body.rec .kbd{display:none}
+.tabs button.on{border-color:var(--gold);background:rgba(232,198,112,.12)}
+.sec .tabs{justify-content:flex-start;margin:8px 0 0}
+body.rec .stage{max-width:none;min-width:0}
+.top{text-align:center;padding:8px 0 2px}
+h1{margin:0;font:700 clamp(30px,8.5vw,48px)/1.05 var(--disp);letter-spacing:.14em;background:linear-gradient(180deg,#fff3c4,#e8c670 55%,#b78a3a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(232,198,112,.25))}
+.orn{display:flex;align-items:center;gap:12px;max-width:300px;margin:12px auto 8px}
+.orn::before,.orn::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
+.orn::after{transform:scaleX(-1)}
+.orn i{width:7px;height:7px;transform:rotate(45deg);background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.sub{margin:0 0 6px;font:italic 500 19px/1.35 var(--serif);color:var(--mut)}
+.hud{display:grid;grid-template-columns:repeat(4,1fr);margin:16px 0 14px;background:var(--panel);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(8px)}
+.st{position:relative;padding:11px 4px 10px;text-align:center}
+.st+.st::before{content:"";position:absolute;left:0;top:22%;bottom:22%;width:1px;background:var(--line)}
+.st small{display:block;margin-bottom:6px;font:500 12px/1.1 system-ui;color:var(--mut)}
+.st b{font:700 19px/1 var(--disp);font-variant-numeric:tabular-nums}
+.runbar{margin:-4px 0 12px;padding:8px 12px;text-align:center;font:600 13px ui-monospace,Menlo,monospace;color:var(--gold2);border:1px dashed var(--line);border-radius:12px;background:rgba(232,198,112,.07)}
+.stage{position:relative;overflow:hidden;border-radius:26px;background:#05040c;border:1px solid var(--line);box-shadow:0 0 0 1px rgba(0,0,0,.6),0 34px 80px -30px rgba(120,80,220,.5),inset 0 0 60px rgba(100,70,200,.12)}
+.stage::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 58%,rgba(2,1,8,.6))}
+.stage::after{content:"";position:absolute;inset:9px;z-index:1;border-radius:18px;border:1px solid rgba(232,198,112,.16);pointer-events:none}
+canvas#cv{display:block;width:100%;height:auto;aspect-ratio:1;cursor:pointer}
+.stage.shake{animation:shake .6s}
+@keyframes shake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(4px,-2px)}30%,50%,70%{transform:translate(-6px,3px)}40%,60%{transform:translate(6px,-3px)}}
+#chat{position:absolute;z-index:2;left:14px;bottom:14px;width:56%;max-height:44%;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;pointer-events:none;font-size:12px;line-height:1.35;text-shadow:0 1px 3px #000}
+#chat .m{width:fit-content;max-width:100%;padding:3px 10px;border-radius:10px;background:rgba(8,6,20,.62);backdrop-filter:blur(4px);animation:fi .25s}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}}
+.res{min-height:170px;padding:22px 8px 6px;text-align:center}
+.res .rk{display:inline-block;padding:4px 14px;font:600 13px system-ui;color:var(--rar);border:1px solid var(--rar);border:1px solid color-mix(in srgb,var(--rar) 45%,transparent);border-radius:999px;background:color-mix(in srgb,var(--rar) 10%,transparent)}
+.res h2{margin:12px 0 2px;font:700 clamp(26px,6.5vw,36px)/1.15 var(--disp);color:var(--rar);text-shadow:0 0 28px color-mix(in srgb,var(--rar) 55%,transparent)}
+.res p{max-width:34ch;margin:4px auto 0;font:italic 500 21px/1.3 var(--serif);color:var(--mut)}
+.res .ev{margin-top:2px;font:500 13px/1.6 ui-monospace,Menlo,monospace;color:var(--ink);white-space:pre-line;font-variant-numeric:tabular-nums}
+.bar{position:relative;height:6px;max-width:360px;margin:16px auto 12px;border-radius:99px;background:linear-gradient(90deg,#ffe48f 0 5%,#7fe0ff 5% 20%,#9a95b8 20% 45%,#8a6a4a 45% 75%,#4a3a2e 75% 100%)}
+.bar i{position:absolute;top:50%;width:12px;height:12px;border-radius:2px;background:#fff;transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 12px #fff}
+.act{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin:14px 0 14px}
+button{font:inherit;cursor:pointer;color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--line2);border-radius:12px;padding:9px 14px;transition:background .15s,border-color .15s,transform .15s}
+button:hover:not(:disabled){background:rgba(255,255,255,.09);border-color:var(--line)}
+button:active:not(:disabled){transform:translateY(1px)}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+button.go{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 18px;border:0;border-radius:16px;color:#2a1a02;font:700 15px var(--disp);letter-spacing:.04em;background:linear-gradient(180deg,#f9e7a8,#e3b955 55%,#c8993a);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 12px 32px -10px rgba(232,198,112,.5)}
+button.go:hover:not(:disabled){background:linear-gradient(180deg,#fff0b9,#ebc263 55%,#d3a444)}
+button.go span{font:700 20px var(--disp);letter-spacing:.06em}
+button.go small{font:600 12px system-ui;opacity:.7}
+button.go:disabled{filter:saturate(.25) brightness(.65);box-shadow:none}
+button.go.alt{color:var(--gold2);border:1px solid var(--line);background:linear-gradient(180deg,#2c2356,#191339);box-shadow:0 12px 32px -14px rgba(120,80,220,.6)}
+button.go.alt:hover:not(:disabled){background:linear-gradient(180deg,#352a69,#1f1747)}
+.dock{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.grp{margin:0;padding:10px 12px 12px;background:var(--panel);border:1px solid var(--line2);border-radius:16px}
+.grp h4{margin:0 0 8px;font:600 13px var(--disp);letter-spacing:.1em;color:var(--gold)}
+.grp div{display:flex;flex-wrap:wrap;gap:8px}
+.grp button{padding:7px 13px;font-size:14px;border-radius:999px}
+#reset{color:#ff9fae;border-color:rgba(255,120,140,.28)}
+.odds{margin:16px 2px 0;color:var(--mut);font-size:13px}
+.odds summary{cursor:pointer;width:fit-content;padding:4px 0;color:var(--gold);font:600 13px var(--disp);letter-spacing:.06em}
+.odds p{margin:8px 0 0}
+.sec{margin:30px 2px 12px}
+h3{margin:0 0 10px;font:600 21px var(--disp);letter-spacing:.06em;color:var(--gold2)}
+#hC{margin-left:8px;font:500 14px system-ui;letter-spacing:0;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.tile{position:relative;padding:10px 4px 8px;text-align:center;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid var(--line2);border-radius:16px;transition:transform .15s,box-shadow .15s}
+.tile:hover{transform:translateY(-2px);box-shadow:0 14px 30px -14px rgba(120,80,220,.65)}
+.tile canvas{width:68px;height:68px}
+.tile small{display:block;min-height:28px;margin-top:2px;font:500 11.5px/1.25 system-ui;color:var(--ink);opacity:.85}
+.tile em{display:block;min-height:14px;font:500 10.5px system-ui;font-style:normal;color:var(--mut)}
+.tile .n{position:absolute;top:6px;right:8px;font:600 12px system-ui;color:var(--gold2)}
+.tile b{font:600 15px var(--disp);color:var(--gold2)}
+.foot{margin:34px 0 6px;text-align:center;font:italic 500 16px var(--serif);color:var(--dim)}
+.ov{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;overflow:auto;text-align:center;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));background:rgba(4,3,12,.78);backdrop-filter:blur(14px) saturate(1.2)}
+.ib{width:100%;max-width:460px;margin:auto;padding:22px 20px;background:linear-gradient(180deg,rgba(30,23,60,.94),rgba(14,11,30,.96));border:1px solid var(--line);border-radius:24px;box-shadow:0 40px 100px -30px #000,inset 0 1px 0 rgba(255,255,255,.06)}
+.ib.wide{max-width:640px}
+.ib>button{margin-top:14px}
+.row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:14px}
+#iw{perspective:700px;touch-action:none}
+#ic{display:block;width:100%;max-width:420px;aspect-ratio:1;margin:0 auto}
+#stc{display:block;width:100%;max-width:600px;aspect-ratio:1;margin:0 auto 8px;border-radius:16px}
+#si{width:100%;max-width:380px;border-radius:14px;box-shadow:0 20px 60px -20px #000}
+textarea{width:100%;padding:10px;color:var(--ink);background:rgba(0,0,0,.35);border:1px solid var(--line2);border-radius:12px;font:12px ui-monospace,Menlo,monospace}
+.tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:10px 0}
+.tabs button{padding:6px 14px;font-size:14px;border-radius:999px}
+.chips{max-height:34vh;overflow:auto;margin:6px 0;text-align:left}
+.chip{margin:3px;padding:5px 12px;font-size:13px;border:1px solid;border-radius:999px;background:rgba(255,255,255,.04)}
+.chip.on{background:rgba(232,198,112,.18)}
+#ta{min-height:22px;font:13px ui-monospace,Menlo,monospace;color:var(--mut)}
+#rx{display:none}
+body.rec #rx{display:block;position:fixed;z-index:5;top:max(8px,env(safe-area-inset-top));right:8px;padding:6px 12px;font-size:13px;opacity:.4;border-radius:999px}
+body.rec .act,body.rec .sky,body.rec .top,body.rec .hud,body.rec .ctl,body.rec .odds,body.rec .sec,body.rec #grid,body.rec .foot{display:none}
+body.rec .wrap{max-width:480px;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center}
+body.rec .res h2{font-size:34px}
+body:has(.ov:not([hidden])) #toast{top:auto;bottom:max(16px,env(safe-area-inset-bottom))}
+body.ecl{--gold:#b9a4ff;--gold2:#e6deff;--line:rgba(185,164,255,.3)}
+body.ecl h1{background:linear-gradient(180deg,#f3eeff,#b9a4ff 55%,#6f56d6);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 18px rgba(160,140,255,.35))}
+body.ecl button.go{color:#160d30;background:linear-gradient(180deg,#e6deff,#a58df5 55%,#7a5fe0)}
+body.ecl button.go.alt{color:var(--gold2);background:linear-gradient(180deg,#2c2356,#191339)}
+body.rm .stage.shake,body.rm #chat .m,body.rm #toast{animation:none}
+body.rm button,body.rm .tile{transition:none}
+div.om{padding:12px 14px;text-align:left;border:1px solid var(--line2);border-radius:14px}
+div.om b{display:block;margin-bottom:6px;font:600 15px var(--disp);color:var(--gold2)}
+input[type=range]{width:100%;padding:0;background:none;border:0;accent-color:var(--gold)}
+.sl{display:grid;gap:10px;margin:12px 0}
+body.rec #chat{font-size:15px}
+button{touch-action:manipulation}
+*{-webkit-tap-highlight-color:transparent}
+.stage{-webkit-user-select:none;user-select:none}
+.ov{overscroll-behavior:contain}
+.res{min-height:120px}
+.act{position:sticky;bottom:max(10px,env(safe-area-inset-bottom));z-index:6;padding:8px;margin:12px -4px 14px;background:rgba(10,8,22,.84);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:22px;box-shadow:0 16px 40px -16px #000}
+#toast{position:fixed;z-index:20;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);padding:10px 16px;text-align:center;border-radius:14px;background:linear-gradient(180deg,rgba(42,32,84,.97),rgba(20,15,42,.97));border:1px solid var(--line);box-shadow:0 20px 50px -16px #000;animation:fi .25s}
+#toast b{display:block;font:600 14px var(--disp);color:var(--gold2)}
+#toast span{font:13px system-ui;color:var(--mut)}
+.ib h3:not(:first-child){margin-top:20px}
+.dr{display:grid;grid-template-columns:86px 1fr 112px;align-items:center;gap:8px;margin:6px 0;font-size:13px;text-align:left}
+.db{position:relative;height:8px;border-radius:99px;background:rgba(255,255,255,.07)}
+.db i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+.db u{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:var(--gold2)}
+.dr em,.hr em{font:500 12px ui-monospace,Menlo,monospace;font-style:normal;color:var(--mut)}
+.hist{max-height:200px;overflow:auto;text-align:left}
+.hr{display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;padding:5px 2px;font-size:13px;border-bottom:1px solid var(--line2)}
+.hr b{width:8px;height:8px;border-radius:50%}
+.achg{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;text-align:left}
+.ac{padding:8px 10px;border:1px solid var(--line2);border-radius:12px;opacity:.5}
+.ac.on{opacity:1;border-color:var(--line);background:rgba(232,198,112,.08)}
+.ac b{display:block;font:600 13px var(--disp);color:var(--gold2)}
+.ac span{font-size:12px;color:var(--mut)}
+.cdl{display:grid;gap:10px;text-align:left;max-height:56vh;overflow:auto}
+.cd{display:grid;grid-template-columns:72px 1fr;gap:12px;padding:10px;border:1px solid var(--line2);border-radius:14px}
+.cd.full{border-color:var(--line);background:rgba(232,198,112,.07)}
+.cd canvas{width:72px;height:72px}
+.cd b{font:600 16px var(--disp)}
+.cd small{display:block;font-size:12px}
+.cd p{margin:3px 0 0;font:italic 500 17px/1.3 var(--serif);color:var(--mut)}
+.cd .pv{color:var(--ink)}
+.cd em{display:block;margin-top:3px;font:500 11.5px system-ui;font-style:normal;color:var(--dim)}
+.dots{display:flex;justify-content:center;gap:8px;margin:14px 0 4px}
+.dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18)}
+.dots i.on{background:var(--gold);box-shadow:0 0 10px var(--gold)}
+input{min-width:0;flex:1 1 140px;padding:9px 12px;color:var(--ink);background:rgba(0,0,0,.35);border:1px solid var(--line2);border-radius:12px;font:inherit}
+#sdi{flex-basis:100%}
+.sky{margin:-4px 0 12px;padding:8px 12px;text-align:center;font:500 13px/1.45 system-ui;color:var(--mut);border:1px solid var(--line2);border-radius:12px;background:rgba(255,255,255,.03)}
+.hud.mini{grid-template-columns:repeat(3,1fr);margin:10px 0}
+.bt{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin:6px 0;padding:8px 10px;text-align:left;font-size:14px;border:1px solid var(--line2);border-radius:12px}
+.bt small{color:var(--gold2);font-size:12px}
+.bt.done{opacity:.45}
+.mlist{max-height:300px;overflow:auto}
+.mr{display:grid;grid-template-columns:10px 1fr auto auto;gap:10px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line2);font-size:13px;text-align:left}
+.mr b{width:8px;height:8px;border-radius:50%}
+.mr em{font:500 12px ui-monospace,Menlo,monospace;font-style:normal;color:var(--gold2)}
+button.sm{padding:4px 12px;font-size:13px;border-radius:999px}
+.bulk{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}
+.oml{display:grid;gap:10px;margin:12px 0}
+button.om{display:block;width:100%;padding:12px 14px;text-align:left;border-radius:14px}
+button.om.on{border-color:var(--gold);background:rgba(232,198,112,.1)}
+button.om b{display:block;font:600 15px var(--disp);color:var(--gold2)}
+button.om span{display:block;font-size:14px}
+button.om small{display:block;margin-top:3px;font-size:12px;color:var(--mut)}
+#chl{font:14px ui-monospace,Menlo,monospace;white-space:pre-line}
+@media (max-width:420px){.act{grid-template-columns:1fr 1fr}.act button.go span{font-size:17px}.st b{font-size:17px}}
+@media (prefers-reduced-motion:reduce){.stage.shake,#chat .m{animation:none}button,.tile{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>The Reliquary</h1>
+    <div class="orn"><i></i></div>
+    <p class="sub">Open a sealed case. Twelve relics orbit; one remains.</p>
+  </header>
+  <div class="colL">
+  <div class="stage" id="stage"><canvas id="cv" width="560" height="560" aria-label="Relic orbit animation"></canvas><div id="chat" aria-hidden="true"></div></div>
+  <div class="res" id="res" aria-live="polite"><p>The case is sealed. Open it to begin.</p></div>
+  <div class="act">
+      <button class="go" id="go"><span>Open the case</span><small>100 shards</small></button>
+      <button class="go alt" id="go10"><span>Open ten</span><small>1,000 shards</small></button>
+  </div>
+  </div>
+  <div class="colR">
+  <div class="hud">
+    <div class="st" id="stS" role="button" tabindex="0" aria-label="Open the Market" title="Open the Market"><small>Shards</small><b id="hS">0</b><i id="hD"></i></div>
+    <div class="st"><small>Opened</small><b id="hO">0</b></div>
+    <div class="st"><small>Spent</small><b id="hP">0</b></div>
+    <div class="st" title="Opens until a Pulsar or better is guaranteed"><small>Pity in</small><b id="hY">25</b></div>
+  </div>
+  <div class="sky" id="sky"></div>
+  <div class="runbar" id="chp" hidden></div>
+  <div class="ctl">
+    <div class="dock">
+      <section class="grp"><h4>Play</h4><div><button id="fast">Fast open: off</button><button id="chatb">Chat: on</button><button id="mute">Sound on</button><button id="hwb">How to play</button><button id="setb">Settings</button></div></section>
+      <section class="grp"><h4>Collection</h4><div><button id="tub">Trade up</button><button id="stb">Star chart</button><button id="shb">Share card</button><button id="stab">Stats</button><button id="cdb">Codex</button><button id="chrb">Chronicle</button></div></section>
+      <section class="grp"><h4>Shards</h4><div><button id="mkb">Market</button><button id="omb">Case: Standard case</button></div></section>
+      <section class="grp"><h4>Modes</h4><div><button id="chb">Challenges</button><button id="rec">Record mode</button></div></section>
+      <section class="grp"><h4>Data</h4><div><button id="svb">Save code</button><button id="reset">Reset everything</button></div></section>
+    </div>
+  </div>
+  <details class="odds"><summary>Odds and rules</summary>
+    <p>Dust 60%, Ember 25%, Nebula 10%, Pulsar 4%, Singularity 1%. A Pulsar or better is guaranteed within 25 opens.</p>
+    <p>Every relic also rolls an erosion value from 0 to 1, and lower is better. Unmarked 5%, Lustrous 15%, Aged 25%, Cracked 30%, Fading 25%.</p>
+    <p>One drop in 20 is a variant: Gilded 2%, Haunted 1.5%, Echo 1%, Inverted 0.5%. Every drop also gets a pattern number from 0000 to 9999.</p>
+  <p>Shards come from selling relics in the Market (a 10% fee applies), filling the daily bounties, and a small alms when you are nearly out. Relic value depends on tier, erosion, variant and pattern, and the Sky shifts prices every 3 minutes: one tier is ascendant (+50%) and another is waning (−25%).</p>
+  <p>Market events (meteor showers, crashes, collector crazes, variant fever) and collector offers run on a timer shared by every player. The Eclipse Case is a weekly rotating case with four exclusive relics and its own constellation.</p>
+  <p>The daily gauntlet uses a seed shared by everyone each day. Finish it for a shard bonus that grows with your streak. Finish constellations to unlock chapters of the Chronicle.</p>
+  </details>
+  <div class="sec"><h3>Your collection <span id="hC"></span></h3><div class="tabs" id="cf"></div></div>
+  <div class="grid" id="grid"></div>
+  <p class="kbd">Shortcuts: O opens a case, T opens ten, M opens the Market. Tap the case during an open to speed it up.</p>
+  <p class="foot">Shards are free and fictional. Nothing here has real-world value.</p>
+  </div>
+  <button id="rx">Exit record mode</button>
+  <div id="ins" class="ov" role="dialog" aria-modal="true" hidden><div class="ib"><div id="iw"><canvas id="ic" width="840" height="840"></canvas></div><div id="itx" class="res"></div><button id="ix">Close</button></div></div>
+  <div id="tu" class="ov" role="dialog" aria-modal="true" hidden><div class="ib"><h3>Trade-up contract</h3><p class="sub">Offer 10 relics of one tier. You receive one relic from the next tier up, carrying the average erosion of your offering.</p><div class="tabs" id="tt"></div><div class="chips" id="tl"></div><p id="ta"></p><div class="row"><button class="go" id="ts" disabled>Sign contract</button><button id="tx">Close</button></div></div></div>
+  <div id="sh" class="ov" role="dialog" aria-modal="true" hidden><div class="ib"><img id="si" alt="Share card"><p class="sub">Press and hold, or right-click, the card to save it.</p><div class="row"><button id="sht">Copy text</button><button id="sx">Close</button></div></div></div>
+  <div id="sv" class="ov" role="dialog" aria-modal="true" hidden><div class="ib"><h3>Save code</h3><p class="sub">Copy this code somewhere safe. Paste it here on any device to restore your collection.</p><textarea id="scd" rows="6"></textarea><p id="sm" class="sub"></p><div class="row"><button id="scp">Copy code</button><button id="sim">Import pasted code</button><button id="sbk">Restore backup</button><button id="svx">Close</button></div></div></div>
+  <div id="chm" class="ov" role="dialog" aria-modal="true" hidden><div class="ib" id="chc"></div></div>
+  <div id="stm" class="ov" role="dialog" aria-modal="true" hidden><div class="ib wide"><h3>Star chart</h3><canvas id="stc" width="1200" height="1200"></canvas><p class="sub">Light every relic in a tier to complete its constellation. Each one pays a one-time bonus: 300 (Dust), 600 (Ember), 1,000 (Nebula), 2,000 (Pulsar), 5,000 (Singularity) or 3,000 (the Eclipse set) shards.</p><button id="stx">Close</button></div></div>
+  <div id="stt" class="ov" role="dialog" aria-modal="true" hidden><div class="ib wide" id="stw"></div></div>
+  <div id="cdx" class="ov" role="dialog" aria-modal="true" hidden><div class="ib wide" id="cdw"></div></div>
+  <div id="obd" class="ov" role="dialog" aria-modal="true" hidden><div class="ib" id="obw"></div></div>
+  <div id="mkt" class="ov" role="dialog" aria-modal="true" hidden><div class="ib wide" id="mkw"></div></div>
+  <div id="omn" class="ov" role="dialog" aria-modal="true" hidden><div class="ib" id="omw"></div></div>
+  <div id="set" class="ov" role="dialog" aria-modal="true" hidden><div class="ib" id="setw"></div></div>
+  <div id="chv" class="ov" role="dialog" aria-modal="true" hidden><div class="ib wide" id="chw"></div></div>
+  <div id="toast" hidden></div>
+</div>
+<script>
+const R=[{n:'Dust',c:'#9aa3b2',w:60},{n:'Ember',c:'#ff8a3d',w:25},{n:'Nebula',c:'#a66bff',w:10},{n:'Pulsar',c:'#3fd5ff',w:4},{n:'Singularity',c:'#ffd86b',w:1}];
+const ITEMS=`0|Cinder Mote|30|5|1|A spark that forgot what it lit.
+0|Ashen Sliver|220|3|1|Shed from a star that never finished burning.
+0|Pale Lantern Shard|190|4|1|Still faintly warm.
+0|Grave Pebble|260|6|1|Someone left it here on purpose.
+1|Kindled Compass|25|8|.5|It points to whatever you have lost.
+1|Sigil of Warm Ash|15|5|.45|Press it to your palm and it answers.
+1|Ember Thimble|35|6|.6|Worn by a seamstress of constellations.
+1|Hearthglass Locket|45|7|.5|Holds one evening, replayed forever.
+1|Coalbound Psalter|10|4|.5|Its pages hum when read aloud.
+2|Veil Chalice|275|6|.5|Drink, and the sky drinks back.
+2|Driftwood Crown|300|8|.4|Grown on a shore with no sea.
+2|Mirror of Hours|260|5|.45|Shows the minute you almost chose.
+2|Lantern of Unnamed Tides|285|7|.5|Its light arrives in waves.
+2|Stardrinker Bowl|315|9|.4|Never quite empty.
+3|Heartbeat Reliquary|195|8|.4|It keeps time for something vast and asleep.
+3|Lodestar Gauntlet|180|6|.35|Grips the shape of gravity.
+3|Cantor of Static|205|10|.4|Sings the silence between broadcasts.
+3|Orrery of Last Light|170|7|.35|Every orbit is a farewell.
+4|The Unwritten Crown|48|12|.3|Awarded to no one. Claimed by you.
+4|Eventide Eye|52|9|.3|It opens only when the universe blinks.
+0|Hollow Bell|205|7|.7|Rings once for every door that closes.
+0|Mourner’s Thread|330|4|.8|Knotted by someone who counted every night.
+1|Cauldron Ladle|20|5|.55|Stirs whatever you are afraid of.
+1|Lantern Moth|40|8|.35|It drinks the light you meant to save.
+1|Brass Orrery Tooth|32|6|.5|One gear from a clock that ran backward.
+2|Tidecaller’s Spur|240|7|.45|It bruises the sea when it rings.
+2|Glasswright’s Sigh|295|9|.35|Blown in a single breath, never exhaled.
+2|Fable Engine|320|6|.55|It writes endings before beginnings.
+3|Choirglass Lens|188|9|.3|Focuses distant voices into a single word.
+4|The Last Candle|44|10|.25|It burns the room around it, never itself.
+2|Umbral Censer|268|8|.4|Its smoke falls upward, toward the dark.|1
+2|Moonless Mirror|252|5|.5|It shows only what the sky is hiding.|1
+3|Corona Gauntlet|40|10|.3|Grips the last ring of light around a vanished sun.|1
+4|The Black Sun|272|12|.28|Warm to the touch, and somehow the coldest thing you own.|1
+2|Shadowband Locket|285|7|.45|It holds the minute the day went quiet.|1
+2|Totality Bell|300|9|.35|It rings once a century, and always on time.|1
+3|Diamond Ring Reliquary|190|8|.35|A flash of brilliance before the long dark.|1
+4|Syzygy Crown|258|11|.27|Three worlds aligned, and it was cast in the gap.|1`.split('\n').map(l=>{const a=l.split('|');return{r:+a[0],name:a[1],h:+a[2],n:+a[3],k:+a[4],lore:a[5],ecl:a[6]==='1'}});
+const COST=100,PITY=24,KEY='reliquary-v1';
+const W=[{n:'Unmarked',m:.05},{n:'Lustrous',m:.2},{n:'Aged',m:.45},{n:'Cracked',m:.75},{n:'Fading',m:1}];
+const wearOf=e=>W.find(w=>e<w.m)||W[4];
+const SAVE_V=2,BAK=KEY+'-bak',BADK=KEY+'-corrupt',PK='reliquary-prefs';let loadNote='',lastBak=0,saveWarned=false,ecl=false,MG=null;
+const DEF=()=>({v:SAVE_V,shards:3000,opened:0,spent:0,pity:0,inv:{},best:{},stash:[]});
+const validSave=o=>!!o&&typeof o==='object'&&typeof o.shards==='number'&&isFinite(o.shards)&&!!o.inv&&typeof o.inv==='object';
+function migrate(o){const s=Object.assign(DEF(),o);['inv','best'].forEach(k=>{if(!s[k]||typeof s[k]!=='object'||Array.isArray(s[k]))s[k]={}});if(!Array.isArray(s.stash))s.stash=[];
+ s.stash=s.stash.filter(c=>c&&Number.isInteger(c.i)&&c.i>=0&&c.i<ITEMS.length&&typeof c.e==='number'&&isFinite(c.e));
+ ['shards','opened','spent','pity'].forEach(k=>{if(typeof s[k]!=='number'||!isFinite(s[k])||s[k]<0)s[k]=DEF()[k]});s.v=SAVE_V;return s}
+let S;
+(function(){let raw=null,b=null;try{raw=localStorage.getItem(KEY);b=localStorage.getItem(BAK)}catch(e){}
+ const parse=r=>{try{const x=JSON.parse(r);return validSave(x)?x:null}catch(e){return null}},x=raw?parse(raw):null;
+ if(x){if((x.v||1)>SAVE_V)loadNote='This save came from a newer version and was loaded as-is.';S=migrate(x);return}
+ if(raw){try{localStorage.setItem(BADK,raw)}catch(e){}}
+ const y=b?parse(b):null;
+ if(y){S=migrate(y);loadNote='Your save could not be read, so the latest backup was restored.'}else{S=DEF();if(raw)loadNote='Your save could not be read and there was no backup, so a fresh game was started.'}})();
+const save=()=>{if(CH)return;if(!isFinite(S.shards))return;try{const prev=localStorage.getItem(KEY);if(prev&&Date.now()-lastBak>300000){localStorage.setItem(BAK,prev);localStorage.setItem(BAK+'-t',String(Date.now()));lastBak=Date.now()}S.v=SAVE_V;localStorage.setItem(KEY,JSON.stringify(S))}catch(e){if(!saveWarned){saveWarned=true;toast('Saving failed','Storage may be full or blocked. Export a save code to keep your progress.','')}}};
+let P={rm:!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches),cb:false,vol:1,hap:true};try{Object.assign(P,JSON.parse(localStorage.getItem(PK)||'{}'))}catch(e){}
+const saveP=()=>{try{localStorage.setItem(PK,JSON.stringify(P))}catch(e){}};
+let lastSh=null,lastCH=false,cfil='all';
+const cfPass=(i,n,vc)=>cfil==='all'||(cfil==='owned'&&n)||(cfil==='missing'&&!n)||(cfil==='var'&&(vc||(S.pv&&S.pv[i])))||(cfil==='ecl'&&ITEMS[i].ecl);
+const $=id=>document.getElementById(id),cv=$('cv'),g=cv.getContext('2d');
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const fmt=n=>n.toLocaleString('en-US');
+
+/* audio, all synthesized */
+let AC=null,muted=false,hum=null;
+function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();MG.gain.value=P.vol;MG.connect(AC.destination)}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
+function tone(f,d,type,v,delay,slide){const a=AC;if(!a||muted)return;const t=a.currentTime+(delay||0),o=a.createOscillator(),gn=a.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(v||.1,t+.012);gn.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(gn).connect(MG||a.destination);o.start(t);o.stop(t+d+.05)}
+function humStart(){const a=AC;if(!a||muted)return;const o=a.createOscillator(),gn=a.createGain();o.type='sawtooth';o.frequency.setValueAtTime(60,a.currentTime);o.frequency.exponentialRampToValueAtTime(240,a.currentTime+5);gn.gain.value=.035;const f=a.createBiquadFilter();f.type='lowpass';f.frequency.value=500;o.connect(f).connect(gn).connect(MG||a.destination);o.start();hum={o,gn}}
+function humStop(){if(hum){try{hum.gn.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.25);hum.o.stop(AC.currentTime+.3)}catch(e){}hum=null}}
+function stinger(r){buzz(HP[r]);const sc=[1,1.25,1.5,1.875,2,2.5,3],n=[2,3,4,6,8][r];for(let i=0;i<n;i++){tone(261.6*sc[i%7]*(i>6?2:1),.9+r*.25,'sine',.1,i*.085);tone(523*sc[i%7],.5,'triangle',.03,i*.085)}
+ if(r>=3)tone(110,1.1,'sine',.3,0,32);if(r===4){tone(55,2.4,'sawtooth',.07,0,40);for(let i=0;i<6;i++)tone(1568*sc[i%7]/1.5,1.2,'sine',.04,.3+i*.12)}if(r===0)tone(180,.3,'triangle',.08,0,120)}
+
+/* procedural glyphs */
+function glyph(c,it,x,y,s,al,t,e,sd,v){const col=R[it.r].c;c.save();c.translate(x,y);c.globalAlpha=al;
+ c.shadowColor=col;c.shadowBlur=s*(.5+.25*it.r);c.fillStyle='#100d20';c.strokeStyle=col;c.lineWidth=Math.max(1.5,s*.06);
+ c.beginPath();c.arc(0,0,s,0,7);c.fill();c.stroke();c.shadowBlur=0;
+ if(it.r>=2){c.save();c.rotate(t*.6);c.setLineDash([3,5]);c.beginPath();c.arc(0,0,s*1.14,0,7);c.stroke();c.restore()}
+ if(it.r===4){c.save();c.rotate(-t*.4);c.setLineDash([1,8]);c.beginPath();c.arc(0,0,s*1.3,0,7);c.stroke();c.restore()}
+ c.rotate(it.n*.7+t*(.3+it.r*.1));const m=it.n*2;c.beginPath();
+ for(let i=0;i<m;i++){const rr=(i%2?it.k:1)*s*.68,an=i/m*6.2832;c.lineTo(Math.cos(an)*rr,Math.sin(an)*rr)}c.closePath();
+ const gr=c.createLinearGradient(-s,-s,s,s);gr.addColorStop(0,`hsl(${it.h},90%,72%)`);gr.addColorStop(1,`hsl(${it.h+40},80%,32%)`);
+ c.fillStyle=gr;c.fill();c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=1;c.stroke();
+ c.beginPath();c.arc(0,0,s*.17,0,7);c.fillStyle='#0b0918';c.fill();
+ if(e!==undefined){c.rotate(-(it.n*.7+t*(.3+it.r*.1)));c.save();c.beginPath();c.arc(0,0,s,0,7);c.clip();let q=Math.abs(sd)||1;const rn=()=>(q=q*16807%2147483647)/2147483647;
+  c.globalAlpha=al*Math.min(.6,e*.75);c.fillStyle='#2b2018';c.fillRect(-s,-s,2*s,2*s);
+  c.globalAlpha=al*.6;c.strokeStyle='#0a0810';c.lineWidth=Math.max(.6,s*.02);
+  for(let i=0,n=Math.round(e*28);i<n;i++){const x0=(rn()-.5)*2*s,y0=(rn()-.5)*2*s,an=rn()*6.28,L=s*(.12+rn()*.5*e);c.beginPath();c.moveTo(x0,y0);c.lineTo(x0+Math.cos(an)*L,y0+Math.sin(an)*L);c.stroke()}
+  c.fillStyle='#000';c.globalAlpha=al*.55*e;for(let i=0,n=Math.round(e*16);i<n;i++){c.beginPath();c.arc((rn()-.5)*1.7*s,(rn()-.5)*1.7*s,s*(.015+rn()*.04),0,7);c.fill()}
+  if(e<.05){c.globalAlpha=al*.3*(1-e/.05);c.fillStyle='#fff';c.beginPath();c.ellipse(-s*.3,-s*.4,s*.5,s*.18,-.6,0,7);c.fill()}
+  c.restore()}
+ if(v&&e!==undefined)variant(c,v,s,al,t);
+ if(P.cb&&e!==undefined){c.fillStyle=col;c.font='600 '+s*.34+'px system-ui';c.textAlign='center';c.textBaseline='middle';c.fillText(RS[it.r],s*.72,-s*.72)}
+ c.restore()}
+
+/* canvas scene */
+let K=1,stars=Array.from({length:110},()=>({x:Math.random()*560,y:Math.random()*560,r:Math.random()*1.3+.3,p:Math.random()*6})),parts=[],A=null,show=null,fl=0,flc='#fff',last=performance.now();
+function size(){const d=Math.min(2,window.devicePixelRatio||1),w=cv.clientWidth||560;cv.width=cv.height=Math.round(w*d);K=cv.width/560}
+addEventListener('resize',size);
+function core(t,heat){const gl=g.createRadialGradient(280,280,0,280,280,60+heat*110);gl.addColorStop(0,`rgba(${ecl?'160,140,255':'255,216,107'},${.12+.4*heat})`);gl.addColorStop(.5,`rgba(166,107,255,${.28*heat})`);gl.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gl;g.fillRect(0,0,560,560);
+ g.save();g.translate(280,280);for(let i=0;i<3;i++){g.save();g.rotate(t*(.4+i*.3)*(i%2?-1:1)*(1+heat*2));g.strokeStyle=`rgba(${ecl?'160,140,255':'255,216,107'},${.55-i*.13})`;g.lineWidth=1.5;g.setLineDash([i?4:14,6+i*4]);g.beginPath();g.arc(0,0,30+i*14,0,7);g.stroke();g.restore()}
+ g.rotate(t*.5);g.beginPath();for(let i=0;i<8;i++){const rr=i%2?9:22,a=i/8*6.2832;g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr)}g.closePath();g.fillStyle=`rgba(255,236,170,${.6+.4*heat})`;g.shadowColor=ecl?'#a08cff':'#ffd86b';g.shadowBlur=20+heat*30;g.fill();g.restore();g.shadowBlur=0}
+function burst(r,col){const n=Math.round((30+r*50)*(P.rm?.2:1));for(let i=0;i<n;i++){const a=Math.random()*6.2832,v=60+Math.random()*(120+r*70);parts.push({x:280,y:280,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:1,s:1+Math.random()*(2+r),c:i%4?col:'#fff'})}}
+function step(now){if(!A&&!parts.length&&fl<=0&&(document.hidden||!onScr||(idleT=!idleT))){requestAnimationFrame(step);return}const dt=Math.min(.05,(now-last)/1000);last=now;const t=now/1000;
+ g.setTransform(K,0,0,K,0,0);g.clearRect(0,0,560,560);g.fillStyle='#05040c';g.fillRect(0,0,560,560);
+ const b1=g.createRadialGradient(130,150,0,130,150,260);b1.addColorStop(0,'rgba(110,60,200,.22)');b1.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=b1;g.fillRect(0,0,560,560);
+ const b2=g.createRadialGradient(440,430,0,440,430,240);b2.addColorStop(0,'rgba(30,150,170,.16)');b2.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=b2;g.fillRect(0,0,560,560);
+ g.save();g.translate(280,280);g.rotate(t*.012);for(const s of stars){g.globalAlpha=.35+.5*Math.abs(Math.sin(t*.8+s.p));g.fillStyle='#fff';g.fillRect(s.x-280,s.y-280,s.r,s.r)}g.restore();g.globalAlpha=1;
+ let heat=.3;
+ if(A){const nz=A.near&&A.k===10;A.t+=dt*1000*((fast||A.skip)?(nz?1.4:3.5):1);const w=(1.1+5.6*Math.exp(-A.t/1700))*(nz?.25:1);heat=.3+.7*Math.min(1,A.t/A.tEnd);if(nz&&A.t>A.hbt){tone(70,.18,'sine',.3);tone(58,.22,'sine',.25,.17);fl=.18;flc='#ff4d6d';A.hbt=A.t+650}
+  while(A.k<A.order.length&&A.t>=A.times[A.k]){const nm=A.near&&A.k===10;A.order[A.k].dead=true;tone(480+A.k*55,.07,'triangle',.11);buzz(6);if(nm){buzz([60,40,140]);tone(70,.9,'sine',.35,0,28);fl=.6;flc='#ff4d6d';shake();$('res').innerHTML='<p>So close…</p>';say('crack',4)}A.k++}
+  const base=205-45*(A.k/11),u=A.t>A.tEnd?Math.min(1,(A.t-A.tEnd)/650):0;
+  core(t,heat);
+  for(const c of A.cards){c.ang+=w*dt;if(c.dead)c.a=Math.max(0,c.a-dt*3.5);if(c.a<=0)continue;
+   let rad=base+(c.dead?(1-c.a)*80:Math.sin(t*3+c.ang*2)*5),sz=34*(c.dead?c.a:1);
+   if(c.id===A.win&&u>0){rad=base*(1-u*u);sz=34+30*u}
+   glyph(g,ITEMS[c.id],280+Math.cos(c.ang)*rad,280+Math.sin(c.ang)*rad,sz,c.dead?c.a:1,t)}
+  if(u>=1)reveal()
+ }else{core(t,show?.15:heat);if(show)glyph(g,show.it,280,280+Math.sin(t*2)*4,66,1,t,show.e,show.sd)}
+ g.globalCompositeOperation='lighter';
+ for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l-=dt*.8;if(p.l<=0){parts.splice(i,1);continue}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.985;p.vy*=.985;g.globalAlpha=p.l;g.fillStyle=p.c;g.beginPath();g.arc(p.x,p.y,p.s,0,7);g.fill()}
+ g.globalAlpha=1;g.globalCompositeOperation='source-over';
+ if(fl>0){fl=Math.max(0,fl-dt*1.8);if(!P.rm){g.globalAlpha=fl*.65;g.fillStyle=flc;g.fillRect(0,0,560,560);g.globalAlpha=1}}
+ requestAnimationFrame(step)}
+
+/* game logic */
+function roll(om){let r;if(S.pity>=PITY)r=rr()<.2?4:3;else{let x=rr()*100;r=0;for(let i=0;i<5;i++){const wi=om&&om.w?om.w[i]:R[i].w;if(x<wi){r=i;break}x-=wi}}
+ S.pity=r>=3?0:(om&&om.nopity?S.pity:S.pity+1);const pool=ITEMS.map((_,i)=>i).filter(i=>ITEMS[i].r===r&&(om&&om.ecl?eclPool().includes(i):!ITEMS[i].ecl));return pool[rr()*pool.length|0]}
+function openCase(){if(A)return;const cs=cost();if(S.shards<cs&&CH&&!CH.budget)S.shards=5000;if(S.shards<cs){if(!CH)marketOpen();return}ac();S.shards-=cs;S.spent+=cs;S.opened++;if(!CH&&S.om)S.om2=1;
+ const dp=drawPull(),win=dp.i,ids=shuffle(ITEMS.map((_,i)=>i).filter(i=>i!==win)).slice(0,11);ids.push(win);shuffle(ids);
+ const cards=ids.map((id,i)=>({id,ang:i/12*6.2832,a:1,dead:false})),order=shuffle(cards.filter(c=>c.id!==win)),times=[];let tt=2000;const ru=ITEMS[order[10].id].r,near=ru>=3&&ru>ITEMS[win].r;order.forEach((c,i)=>{if(i===10&&near)tt+=1500;times.push(tt);tt+=170+i*38});
+ A={t:0,cards,win,order,times,k:0,tEnd:tt+700,near,hbt:0,v:dp.v,e:dp.e,sd:dp.sd};show=null;
+ $('res').innerHTML='<p>The case is unsealing…</p>';$('go').disabled=true;
+ tone(130,.6,'sine',.25,0,50);humStart();say('open',3);hud();save()}
+function reveal(){const it=ITEMS[A.win],r=R[it.r],e=A.e,sd=A.sd,v=A.v,w=wearOf(e);humStop();stinger(it.r);if(e<.05){tone(2093,.7,'sine',.05,.25);tone(3136,.7,'sine',.04,.4)}burst(it.r,r.c);if(e<.05)burst(2,'#ffe48f');fl=.5+it.r*.12+(e<.05?.2:0);flc=r.c;
+ S.inv[A.win]=(S.inv[A.win]||0)+1;const first=S.inv[A.win]===1;const prev=S.best[A.win];if(prev===undefined||e<prev)S.best[A.win]=e;const nb=prev!==undefined&&e<prev;S.stash.push({i:ITEMS.indexOf(it),e,sd,v});const pk0=ITEMS.indexOf(it);S.pc=S.pc||{};S.pc[pk0]=(S.pc[pk0]||0)+1;if(v){(S.pv=S.pv||{})[pk0]=1}show={it,e,sd,v};A=null;if(v){tone(1175,.6,'sine',.06,.1);tone(1760,.8,'sine',.05,.3);burst(3,'#fff')}react(it.r,e,v,sd);chPull(it,e,v);logPull(it,e,v,sd);
+ const st=$('stage');if(it.r>=3){st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake')}
+ $('res').style.setProperty('--rar',r.c);$('res').innerHTML=`<div class="rk">${rn(it.r)}${first?', new to your collection':''}</div><h2></h2><p></p><div class="bar"><i style="left:${e*100}%"></i></div><div class="ev"></div>`;
+ $('res').querySelector('h2').textContent=it.name;$('res').querySelector('p').textContent=it.lore;$('res').querySelector('.ev').textContent=w.n+', erosion '+e.toFixed(8)+(e<.001?'. Flawless.':e>.999?'. Almost gone.':nb?'. Your cleanest yet.':'')+extra(v,sd);
+ $('go').disabled=S.shards<COST;hud();tiles();save()}
+function hud(){if((!!CH)!==lastCH){lastSh=null;lastCH=!!CH}const dsh=S.shards-lastSh;$('hS').textContent=fmt(S.shards);if(lastSh!==null&&dsh&&!P.rm){const d=$('hD');d.textContent=(dsh>0?'+':'\u2212')+fmt(Math.abs(dsh));d.style.color=dsh>0?'#8be28b':'#ff9fae';d.classList.remove('on');void d.offsetWidth;d.classList.add('on')}lastSh=S.shards;$('hO').textContent=fmt(S.opened);$('hP').textContent=fmt(S.spent);$('hY').textContent=Math.max(1,PITY+1-S.pity);const cs=cost();$('go10').disabled=!!A||S.shards<cs*10;if(!A)$('go').disabled=false;updCost();chCheck()}
+function tiles(){const grid=$('grid');if(!grid.children.length){ITEMS.forEach((it,i)=>{const d=document.createElement('div');d.className='tile';d.innerHTML='<span class="n"></span><canvas width="128" height="128"></canvas><small></small><em></em>';grid.appendChild(d)})}
+ let have=0;ITEMS.forEach((it,i)=>{const d=grid.children[i],o=S.inv[i]||0,n=o>0||S.best[i]!==undefined?1:0,c=d.querySelector('canvas').getContext('2d');if(n)have++;c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,128,128);const b=n?S.best[i]:undefined,vc=n?S.stash.find(x=>x.i===i&&x.v):null,bc=n&&b!==undefined?S.stash.find(x=>x.i===i&&x.e===b):null,pk=vc||bc,pe=pk?pk.e:b,ps=pk?pk.sd:-(i+7),pv=pk?(pk.v||0):0;glyph(c,it,64,64,44,n?1:.14,0,pe,ps,pv);d.onclick=pe!==undefined?()=>openInspect(i,pe,ps,pv):null;d.style.cursor=pe!==undefined?'pointer':'';d.tabIndex=pe!==undefined?0:-1;d.setAttribute('role',pe!==undefined?'button':'img');d.setAttribute('aria-label',n?it.name+', '+R[it.r].n+(pe!==undefined?', tap to inspect':''):'Undiscovered relic');d.querySelector('em').textContent=pe===undefined?'':(pv?VN[pv]+', ':'')+wearOf(pe).n+' '+pe.toFixed(4);
+  d.querySelector('small').textContent=n?it.name:'Undiscovered';d.querySelector('.n').textContent=n&&o!==1?'x'+o:'';d.style.borderColor=n?R[it.r].c+'66':'';d.hidden=!cfPass(i,n,vc)});
+ $('hC').textContent=`(${have} of ${ITEMS.length})`;chkSets()}
+$('go').onclick=openCase;
+$('mute').onclick=()=>{muted=!muted;$('mute').textContent=muted?'Sound off':'Sound on';if(muted)humStop();P.mute=muted;saveP()};
+
+let rt=null;$('reset').onclick=()=>{if(CH)return;const b=$('reset');if(!rt){b.textContent='Tap again to erase everything';rt=setTimeout(()=>{rt=null;b.textContent='Reset everything'},4000);return}clearTimeout(rt);rt=null;b.textContent='Reset everything';humStop();A=null;show=null;parts=[];fl=0;snapBak();S=DEF();try{localStorage.removeItem(KEY)}catch(e){}$('res').innerHTML='<p>The case is sealed again. Your previous collection is kept as a backup in Save code.</p>';$('go').disabled=false;hud();tiles()};
+/* v3: ten at once, inspect, trade-ups, share card, record mode */
+let fast=false,IN=null;const TU={r:0,sel:new Set()},ic=$('ic'),ovs=['ins','tu','sh','sv','chm','stm','stt','cdx','obd','mkt','omn','set','chv'];
+const shake=()=>{if(P.rm)return;const st=$('stage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake')};
+function grant(i,e,sd,v){const first=S.best[i]===undefined&&!(S.inv[i]>0),p=S.best[i];S.inv[i]=(S.inv[i]||0)+1;if(p===undefined||e<p)S.best[i]=e;S.pc=S.pc||{};S.pc[i]=(S.pc[i]||0)+1;if(v){(S.pv=S.pv||{})[i]=1}S.stash.push({i,e,sd,v});if(S.stash.length>1500)S.stash.shift();return{first,nb:p!==undefined&&e<p}}
+function land(win,e,sd,tag,v){ac();const it=ITEMS[win],r=R[it.r],w=wearOf(e),gr=grant(win,e,sd,v);show={it,e,sd,v};if(v)tone(1175,.6,'sine',.06,.1);stinger(it.r);burst(it.r,r.c);if(e<.05)burst(2,'#ffe48f');fl=.5+it.r*.12;flc=r.c;if(it.r>=3)shake();
+ const rs=$('res');rs.style.setProperty('--rar',r.c);rs.innerHTML='<div class="rk"></div><h2></h2><p></p><div class="bar"><i style="left:'+e*100+'%"></i></div><div class="ev"></div>';
+ rs.querySelector('.rk').textContent=(tag?tag+': ':'')+rn(it.r)+(gr.first?', new to your collection':'');rs.querySelector('h2').textContent=it.name;rs.querySelector('p').textContent=it.lore;rs.querySelector('.ev').textContent=w.n+', erosion '+e.toFixed(8)+(e<.001?'. Flawless.':gr.nb?'. Your cleanest yet.':'')+extra(v,sd);react(it.r,e,v,sd);hud();tiles();save();setTimeout(qsell,0)}
+function openTen(){if(A)return;const cs=cost();if(CH&&!CH.budget&&S.shards<cs*10)S.shards=5000;if(S.shards<cs*10)return;ac();S.shards-=cs*10;S.spent+=cs*10;S.opened+=10;S.o10=1;if(!CH&&S.om)S.om2=1;show=null;const ps=[];
+ for(let k=0;k<10;k++){const dp=drawPull(),i=dp.i,e=dp.e,sd=dp.sd,v=dp.v;ps.push({i,e,sd,v,g:grant(i,e,sd,v)});chPull(ITEMS[i],e,v);logPull(ITEMS[i],e,v,sd)}
+ let b=ps[0];ps.forEach(p=>{const a=ITEMS[p.i].r,c=ITEMS[b.i].r;if(a>c||(a===c&&p.e<b.e))b=p});const mr=ITEMS[b.i].r;show={it:ITEMS[b.i],e:b.e,sd:b.sd,v:b.v};react(mr,b.e,b.v,b.sd);
+ tone(130,.5,'sine',.2,0,50);stinger(mr);burst(mr,R[mr].c);fl=.4+mr*.1;flc=R[mr].c;if(mr>=3)shake();
+ const rs=$('res');rs.style.setProperty('--rar',R[mr].c);rs.innerHTML='<div class="rk"></div><div class="grid" id="tg"></div>';rs.querySelector('.rk').textContent='Ten opened. Best pull: '+ITEMS[b.i].name;
+ ps.forEach(p=>{const it=ITEMS[p.i],d=document.createElement('div');d.className='tile';d.style.borderColor=R[it.r].c+'99';d.style.cursor='pointer';d.innerHTML='<canvas width="128" height="128"></canvas><small></small><em></em>';glyph(d.querySelector('canvas').getContext('2d'),it,64,64,44,1,0,p.e,p.sd,p.v);d.querySelector('small').textContent=it.name+(p.g.first?' (new)':'');d.querySelector('em').textContent=(p.v?VN[p.v]+', ':'')+wearOf(p.e).n+' '+p.e.toFixed(4);d.onclick=()=>openInspect(p.i,p.e,p.sd,p.v);d.tabIndex=0;d.setAttribute('role','button');d.setAttribute('aria-label',it.name+', '+R[it.r].n+', tap to inspect');$('tg').appendChild(d)});hud();tiles();save()}
+function openInspect(i,e,sd,v){const it=ITEMS[i],r=R[it.r],w=wearOf(e),was=!!IN;IN={it,e,sd,v,px:0,py:0,tx:0,ty:0};$('ins').hidden=false;const x=$('itx');x.style.setProperty('--rar',r.c);x.innerHTML='<div class="rk"></div><h2></h2><p></p><div class="ev"></div>';x.querySelector('.rk').textContent=rn(it.r)+', '+w.n;x.querySelector('h2').textContent=it.name;x.querySelector('p').textContent=it.lore;x.querySelector('.ev').textContent='erosion '+e.toFixed(8)+extra(v,sd)+'\nMarket value now: '+fmt(net({i,e,sd:sd>0?sd:0,v:v||0}))+' shards.';if(!was)requestAnimationFrame(inspLoop)}
+function inspLoop(){if(!IN)return;const c=ic.getContext('2d'),t=performance.now()/1000;c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,420,420);IN.tx+=(IN.px-IN.tx)*.12;IN.ty+=(IN.py-IN.ty)*.12;ic.style.transform='rotateX('+-IN.ty*16+'deg) rotateY('+IN.tx*16+'deg)';
+ glyph(c,IN.it,210,210,150,1,t,IN.e,IN.sd,IN.v);c.save();c.beginPath();c.arc(210,210,150,0,7);c.clip();c.globalCompositeOperation='lighter';
+ const a=Math.atan2(IN.ty,IN.tx),d=Math.min(1,Math.hypot(IN.tx,IN.ty)),gx=Math.cos(a)*220,gy=Math.sin(a)*220,fg=c.createLinearGradient(210-gx,210-gy,210+gx,210+gy);
+ ['#ff6b9d','#ffd86b','#6bff9d','#6bd5ff','#a66bff'].forEach((col,i)=>fg.addColorStop(i/4,col));c.globalAlpha=(.1+.08*IN.it.r)*(1.2-IN.e)*(.35+d);c.fillStyle=fg;c.fillRect(0,0,420,420);
+ const sx=210+IN.tx*110,sy=210+IN.ty*110,sp=c.createRadialGradient(sx,sy,0,sx,sy,140);sp.addColorStop(0,'rgba(255,255,255,.9)');sp.addColorStop(1,'rgba(255,255,255,0)');c.globalAlpha=.18+.1*(1-IN.e);c.fillStyle=sp;c.fillRect(0,0,420,420);c.restore();requestAnimationFrame(inspLoop)}
+const iw=$('iw');iw.onpointermove=ev=>{if(!IN)return;const b=iw.getBoundingClientRect();IN.px=(ev.clientX-b.left)/b.width*2-1;IN.py=(ev.clientY-b.top)/b.height*2-1};iw.onpointerleave=()=>{if(IN){IN.px=0;IN.py=0}};
+function tuDraw(){const L=$('tl');L.innerHTML='';[...$('tt').children].forEach((b,i)=>b.style.borderColor=i===TU.r?R[i].c:'');
+ const list=S.stash.map((c,k)=>({i:c.i,e:c.e,k})).filter(c=>ITEMS[c.i].r===TU.r).sort((a,b)=>a.e-b.e);
+ list.forEach(c=>{const on=TU.sel.has(c.k),b=document.createElement('button');b.className='chip'+(on?' on':'');b.style.borderColor=R[TU.r].c+(on?'':'55');b.textContent=ITEMS[c.i].name+' '+c.e.toFixed(3);b.onclick=()=>{if(on)TU.sel.delete(c.k);else if(TU.sel.size<10)TU.sel.add(c.k);tuDraw()};L.appendChild(b)});
+ if(!list.length)L.innerHTML='<p class="sub">No relics of this tier yet. Relics you open from now on appear here.</p>';
+ const n=TU.sel.size,av=n?[...TU.sel].reduce((s,k)=>s+S.stash[k].e,0)/n:0;$('ta').textContent=n+' of 10 chosen'+(n?'. Average erosion '+av.toFixed(4)+', '+wearOf(av).n:'');$('ts').disabled=n!==10}
+R.slice(0,4).forEach((r,i)=>{const b=document.createElement('button');b.textContent=r.n;b.onclick=()=>{TU.r=i;TU.sel.clear();tuDraw()};$('tt').appendChild(b)});
+$('tub').onclick=()=>{if(A)return;TU.sel.clear();$('tu').hidden=false;tuDraw()};
+$('ts').onclick=()=>{if(TU.sel.size!==10)return;const ks=[...TU.sel].sort((a,b)=>b-a);let tot=0;ks.forEach(k=>{const c=S.stash[k];tot+=c.e;S.inv[c.i]=Math.max(0,(S.inv[c.i]||0)-1);S.stash.splice(k,1)});
+ const e=Math.min(1,Math.max(0,tot/10+(Math.random()-.5)*.06)),pool=ITEMS.map((_,i)=>i).filter(i=>ITEMS[i].r===TU.r+1&&!ITEMS[i].ecl),win=pool[Math.random()*pool.length|0];TU.sel.clear();$('tu').hidden=true;S.tc=(S.tc||0)+1;land(win,e,1+(Math.random()*2e9|0),'Contract fulfilled',rollV())};
+function shareCard(){const it=show.it,r=R[it.r],e=show.e,w=wearOf(e),cc=document.createElement('canvas');cc.width=1080;cc.height=1350;const c=cc.getContext('2d');
+ const bg=c.createRadialGradient(540,520,50,540,520,900);bg.addColorStop(0,'#1d1440');bg.addColorStop(1,'#05040c');c.fillStyle=bg;c.fillRect(0,0,1080,1350);
+ let q=show.sd;const rn=()=>(q=q*16807%2147483647)/2147483647;c.fillStyle='#fff';for(let i=0;i<160;i++){c.globalAlpha=.2+rn()*.6;c.fillRect(rn()*1080,rn()*1350,1+rn()*2,1+rn()*2)}c.globalAlpha=1;
+ const gl=c.createRadialGradient(540,540,0,540,540,430);gl.addColorStop(0,r.c+'66');gl.addColorStop(1,r.c+'00');c.fillStyle=gl;c.fillRect(0,0,1080,1350);
+ glyph(c,it,540,540,300,1,0,e,show.sd,show.v);c.textAlign='center';c.fillStyle=r.c;c.font='700 76px Cinzel,Georgia,serif';c.fillText(it.name,540,980);
+ c.fillStyle='#ece8ff';c.font='40px Georgia,serif';c.fillText((show.v?VN[show.v]+' ':'')+r.n+', '+w.n,540,1045);c.font='38px ui-monospace,Menlo,monospace';c.fillText('erosion '+e.toFixed(8),540,1105);
+ let x=240;[['#ffe48f',.05],['#7fe0ff',.15],['#9a95b8',.25],['#8a6a4a',.3],['#4a3a2e',.25]].forEach(s=>{c.fillStyle=s[0];c.fillRect(x,1140,600*s[1],14);x+=600*s[1]});c.fillStyle='#fff';c.fillRect(240+600*e-3,1130,6,34);
+ c.fillStyle='#9a95b8';c.font='500 34px Cinzel,Georgia,serif';c.fillText('Pattern #'+pat(show.sd)+', The Reliquary',540,1260);return cc.toDataURL('image/png')}
+$('shb').onclick=()=>{if(!show){$('res').innerHTML='<p>Open or inspect a relic first, then make a card.</p>';return}$('si').src=shareCard();$('sh').hidden=false};
+$('go10').onclick=openTen;$('fast').onclick=()=>{fast=!fast;$('fast').textContent='Fast open: '+(fast?'on':'off');P.fast=fast;saveP()};
+$('rec').onclick=()=>{document.body.classList.add('rec');scrollTo(0,0);if(!A&&!show)$('res').innerHTML='<p>Tap the case or press space to open.</p>'};
+const closeAll=()=>{ovs.forEach(id=>$(id).hidden=true);IN=null;SM=false;document.body.classList.remove('rec')};
+$('ix').onclick=()=>{$('ins').hidden=true;IN=null};$('tx').onclick=()=>{$('tu').hidden=true};$('sx').onclick=()=>{$('sh').hidden=true};$('rx').onclick=closeAll;
+addEventListener('keydown',ev=>{if(ev.key==='Escape')closeAll();else if((ev.key==='Enter'||ev.key===' ')&&ev.target&&ev.target.getAttribute&&ev.target.getAttribute('role')==='button'&&ev.target.tagName!=='BUTTON'){ev.preventDefault();ev.target.click()}else if(ev.code==='Space'&&document.body.classList.contains('rec')){ev.preventDefault();openCase()}else if(!ev.ctrlKey&&!ev.metaKey&&!ev.altKey&&!/INPUT|TEXTAREA/.test((ev.target||{}).tagName||'')&&!document.querySelector('.ov:not([hidden])')){const k=ev.key.toLowerCase();if(k==='o')openCase();else if(k==='t'){if(!$('go10').disabled)openTen()}else if(k==='m')marketOpen()}});
+cv.style.cursor='pointer';cv.onclick=()=>{if(A){A.skip=true;return}if(document.body.classList.contains('rec')){openCase();return}if(show)openInspect(ITEMS.indexOf(show.it),show.e,show.sd,show.v)};
+/* v4: chat, variants, challenges, save codes, star chart */
+let CH=null,SM=false,chatOn=true,imp=false;
+const VN=['','Gilded','Haunted','Echo','Inverted'],PTS=[1,3,8,25,100],BON=[300,600,1000,2000,5000,3000],CC=[[.26,.16],[.74,.16],[.26,.49],[.74,.49],[.26,.83],[.74,.83]],SETS=['The Quiet Hearth','The Kindled Road','The Drowned Court','The Sleeping Engine','The Twin Thrones','The Black Sun'];
+const rollV=(m=1)=>{const x=rr();return x<.02*m?1:x<.035*m?2:x<.045*m?3:x<.05*m?4:0};
+const pat=sd=>String(sd%10000).padStart(4,'0');
+const pn=sd=>{const n=sd%10000,s=pat(sd);return s[0]===s[1]&&s[1]===s[2]&&s[2]===s[3]?'Uniform':s===[...s].reverse().join('')?'Mirror':n<100?'Low number':''};
+const extra=(v,sd)=>{const a=[];if(v)a.push(VN[v]+' variant');if(sd>0)a.push('Pattern #'+pat(sd)+(pn(sd)?' ('+pn(sd)+')':''));return a.length?'\n'+a.join('. ')+'.':''};
+function variant(c,v,s,al,t){c.save();c.globalAlpha=al;
+ if(v===1){c.strokeStyle='#ffd86b';c.lineWidth=Math.max(2,s*.09);c.shadowColor='#ffd86b';c.shadowBlur=s*.6;c.beginPath();c.arc(0,0,s*.96,0,7);c.stroke();c.shadowBlur=0;c.beginPath();c.arc(0,0,s,0,7);c.clip();c.globalCompositeOperation='lighter';c.globalAlpha=al*.28;c.fillStyle='#ffc94d';c.fillRect(-s,-s,2*s,2*s)}
+ else if(v===2){const j=Math.sin(t*17)>.55?s*.07:s*.025;c.globalCompositeOperation='lighter';c.lineWidth=Math.max(1.5,s*.05);c.strokeStyle='rgba(0,255,230,.7)';c.beginPath();c.arc(-j,0,s*.9,0,7);c.stroke();c.strokeStyle='rgba(255,0,120,.7)';c.beginPath();c.arc(j,0,s*.9,0,7);c.stroke();c.beginPath();c.arc(0,0,s,0,7);c.clip();c.globalAlpha=al*.22;c.fillStyle='#000';for(let y=-s;y<s;y+=Math.max(3,s*.08))c.fillRect(-s,y,2*s,Math.max(1,s*.03))}
+ else if(v===3){c.strokeStyle='#a9e8ff';c.lineWidth=Math.max(1,s*.03);for(let k=1;k<=3;k++){c.globalAlpha=al*(.5-k*.12);c.beginPath();c.arc(Math.sin(t*1.5)*s*.04*k,0,s*(1+k*.16),0,7);c.stroke()}}
+ else{c.beginPath();c.arc(0,0,s,0,7);c.clip();c.globalCompositeOperation='difference';c.globalAlpha=al*.92;c.fillStyle='#fff';c.fillRect(-s,-s,2*s,2*s)}
+ c.restore()}
+/* live chat */
+const NM=['VoidWalker','relicgoblin','nebulanerd','pityTimer99','dust_collector','LootLarry','shardhoarder','mistyeyed','gachaPhil','sir_spins_a_lot','astro_nana','cursedcrate','gl1tchwitch','toastfromspace','ouroboros_fan','kwazii','mothlight','NotARobot7','copium_dealer','sleepyorbit'];
+const CHT={idle:['let’s go','open it','this is the one','ez','first','pog','chat is this real','wait for it','my luck is cursed','any second now','not me sweating','you got this','nebula pls','no dust no dust no dust'],open:['here we go','case unsealed','pity timer don’t fail me','clip it','praying','buckle up'],crack:['NOOOOO','SO CLOSE','not like this','it’s over','RIGGED','bro what','I can’t watch','that was the one','pain'],near:['no no no no','don’t you dare','slow down','is that a heartbeat','oh no','hold','dead chat'],r0:['lmao dust','F','mid','classic','sad trombone','the pebble of shame','rip','refund??'],r1:['ok not bad','warm','ember gang','decent','respectable','heating up'],r2:['NICE','purple!!','nebula W','oooh','that’s pretty','W pull'],r3:['PULSAR','LET’S GOOOO','HUGE','chat clip it','sheeeesh','no way'],r4:['SINGULARITY','NO WAY','CLIP IT NOW','I’M SHAKING','THE CROWN??','HOLY','chat we won'],clean:['unmarked?? cracked','factory fresh','the shine tho','so clean','look at that finish'],worn:['falling apart lol','rip condition','dust with extra steps','well loved'],variant:['VARIANT?!','that’s not even legal','the glitch is real','golden!!','what is that','collector alert'],pat:['mirror seed lol','that pattern tho','seed collectors rise','nerd alert'],set:['SET COMPLETE','constellation!!','star chart gang','galaxy brain']};
+const pick=a=>a[Math.random()*a.length|0],hue=s=>{let h=0;for(const ch of s)h=(h*31+ch.charCodeAt(0))%360;return h};
+function chat(name,txt,sy){if(!chatOn)return;const b=$('chat'),d=document.createElement('div');d.className='m';if(sy){d.style.color='#ffd86b';d.textContent=txt}else{const n=document.createElement('b');n.style.color='hsl('+hue(name)+',80%,70%)';n.textContent=name+' ';d.appendChild(n);d.appendChild(document.createTextNode(txt))}b.appendChild(d);while(b.children.length>7)b.removeChild(b.firstChild)}
+function say(k,n){const p=CHT[k];for(let i=0;i<n;i++)setTimeout(()=>chat(pick(NM),pick(p)),i*(120+Math.random()*350)+Math.random()*200)}
+const sys=t=>chat('',t,1);
+function react(r,e,v,sd){if(S.om===5&&!CH)say('ecl',3);say('r'+r,2+r*2);if(e<.05)say('clean',2);else if(e>.8)say('worn',2);if(v)say('variant',3);if(sd>0&&pn(sd))say('pat',2)}
+setInterval(()=>{if(!A)return;const nz=A.near&&A.k===10;if(Math.random()<(nz?.9:.45))say(nz?'near':'idle',nz?2:1)},600);
+$('chatb').onclick=()=>{chatOn=!chatOn;$('chatb').textContent='Chat: '+(chatOn?'on':'off');if(!chatOn)$('chat').innerHTML='';P.chat=chatOn;saveP()};
+/* challenges */
+const MODES=[['gauntlet','Gauntlet','Spend 1,000 shards. Score rewards rarity and clean erosion.',1],['ironman','Ironman','5,000 shards, no refills. Open until you run dry.',1],['pity','Pity speedrun','Fewest opens to your first Singularity.',0],['hunt','Clean hunt','Fewest opens to an Unmarked relic of Nebula or better.',0]];
+const fmtT=t=>Math.floor(t/60)+':'+(t%60).toFixed(1).padStart(4,'0'),chUI=()=>{$('chb').textContent=CH?'Abandon run':'Challenges'};
+function chMenu(){const b=$('chc');b.innerHTML='<h3>Challenges</h3><p class="sub">Each run uses a fresh, separate collection. Leave the seed blank for random pulls, or enter one so everyone who uses it gets exactly the same pulls.</p><div class="row"><input id="sdi" maxlength="24" placeholder="Seed (optional)" autocomplete="off"><button id="sdr">Random</button><button id="sdd">Daily</button></div>';
+ $('sdr').onclick=()=>{$('sdi').value=String(1000+Math.random()*9000|0)};$('sdd').onclick=()=>{$('sdi').value=dailyKey()};
+ {const dd=document.createElement('div'),done=(S.dly||{})[dayKey()],st=dailyStreak();dd.className='tile';dd.style.cssText='margin:10px 0;padding:10px;text-align:left;border-color:var(--line)';dd.innerHTML='<b></b><small></small><button class="go" style="font-size:14px;padding:8px 16px;margin-top:6px"></button>';dd.querySelector('b').textContent='Daily gauntlet';
+  dd.querySelector('small').textContent='Same pulls for everyone today. '+(done!==undefined?'Today: '+done+' points. ':'')+'Streak: '+st+' day'+(st===1?'':'s')+'. The first clear each day pays '+(150+50*Math.min(done!==undefined?st:st+1,5))+' shards.';
+  const bt=dd.querySelector('button');bt.textContent=done!==undefined?'Play again':'Start';bt.onclick=()=>chStart('gauntlet',dailyKey());b.appendChild(dd)}
+ MODES.forEach(m=>{const d=document.createElement('div'),pb=S.hs&&S.hs[m[0]];d.className='tile';d.style.cssText='margin:8px 0;padding:10px;text-align:left';d.innerHTML='<b></b><small></small><button class="go" style="font-size:14px;padding:8px 16px;margin-top:6px">Start</button>';d.querySelector('b').textContent=m[1];d.querySelector('small').textContent=m[2]+(pb===undefined?'':' Personal best: '+pb+(m[3]?' points.':' opens.'));d.querySelector('button').onclick=()=>chStart(m[0]);b.appendChild(d)});
+ const x=document.createElement('button');x.textContent='Close';x.onclick=()=>{$('chm').hidden=true};b.appendChild(x);$('chm').hidden=false}
+function chStart(mode,sd){if(A)return;const seed=(sd!==undefined?sd:($('sdi')?$('sdi').value:'')).trim().slice(0,24),bud={gauntlet:1000,ironman:5000}[mode]||0;rr=seed?seedRng(seed):()=>Math.random();CH={mode,seed,snap:JSON.stringify(S),t0:performance.now(),opens:0,score:0,budget:bud,done:false};S={shards:bud||5000,opened:0,spent:0,pity:0,inv:{},best:{},stash:[],hs:{}};show=null;$('chm').hidden=true;$('res').innerHTML='<p>Run started'+(seed?' on seed '+seed:'')+'. Open the case.</p>';chUI();hud();tiles()}
+function chPull(it,e,v){if(!CH||CH.done)return;CH.opens++;CH.score+=PTS[it.r]*(1.5-e)*(v?1.5:1);if(CH.mode==='pity'&&it.r===4)CH.done=true;if(CH.mode==='hunt'&&it.r>=2&&e<.05)CH.done=true}
+function chCheck(){if(!CH||A)return;if(CH.done||(CH.budget&&S.shards<COST))finish()}
+function finish(){const c=CH;CH=null;rr=()=>Math.random();const sc=c.mode==='gauntlet'||c.mode==='ironman',t=(performance.now()-c.t0)/1000,met=sc?Math.round(c.score):c.opens,key=c.mode+(c.seed?':'+c.seed:'');S=JSON.parse(c.snap);S.hs=S.hs||{};S.cc=(S.cc||0)+1;let dB=0;if(c.seed===dailyKey()&&c.mode==='gauntlet'){S.dly=S.dly||{};const k=dayKey(),first=S.dly[k]===undefined;S.dly[k]=Math.max(S.dly[k]||0,met);Object.keys(S.dly).sort().slice(0,-30).forEach(x=>delete S.dly[x]);if(first){dB=150+50*Math.min(streakOf(S),5);gain(dB)}}const pb=S.hs[key],nb=pb===undefined||(sc?met>pb:met<pb);if(nb)S.hs[key]=met;save();show=null;chUI();
+ const nm=MODES.find(m=>m[0]===c.mode)[1],line=sc?'Score '+met+' from '+c.opens+' opens.':'Finished in '+c.opens+' opens and '+fmtT(t)+'.',msg='The Reliquary, '+nm+(c.seed?', seed '+c.seed:'')+': '+line+' Can you beat it?';
+ const b=$('chc');b.innerHTML='<h3>Run complete</h3><p id="chl"></p><p class="sub" id="chn"></p><div class="row"><button id="chy">Copy result</button><button class="go" id="chk">Back to my collection</button></div>';
+ $('chl').textContent=line+'\n'+(nb?'New personal best.':'Personal best: '+pb+(sc?' points.':' opens.'))+(dB?'\nDaily bonus: +'+fmt(dB)+' shards.':'');$('chn').textContent=c.seed?'Share the seed. Everyone who uses it gets the same pulls.':'';
+ $('chy').onclick=async()=>{try{await navigator.clipboard.writeText(msg);$('chy').textContent='Copied'}catch(e){$('chn').textContent=msg}};
+ $('chk').onclick=()=>{$('chm').hidden=true};$('chm').hidden=false;tiles();hud();chkAch()}
+function abandon(){if(A||!CH)return;S=JSON.parse(CH.snap);CH=null;rr=()=>Math.random();show=null;chUI();$('res').innerHTML='<p>Run abandoned. Your collection is back.</p>';hud();tiles()}
+$('chb').onclick=()=>CH?abandon():chMenu();
+setInterval(()=>{const p=$('chp');if(!CH){p.hidden=true;return}p.hidden=false;const sc=CH.mode==='gauntlet'||CH.mode==='ironman';p.textContent=MODES.find(m=>m[0]===CH.mode)[1]+(CH.seed?' #'+CH.seed:'')+': '+CH.opens+' opens, '+fmtT((performance.now()-CH.t0)/1000)+(sc?', score '+Math.round(CH.score):'')},200);
+/* save codes */
+const enc=o=>'RLQ1:'+btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+$('svb').onclick=()=>{if(CH){$('res').innerHTML='<p>Finish or abandon the run before exporting.</p>';return}$('scd').value=enc(S);$('sm').textContent=bakInfo();$('sv').hidden=false};
+$('scp').onclick=async()=>{const t=$('scd');t.select();try{await navigator.clipboard.writeText(t.value);$('sm').textContent='Copied.'}catch(e){$('sm').textContent='Select the code and copy it manually.'}};
+$('sim').onclick=()=>{const t=$('scd').value.trim();let o;try{if(!t.startsWith('RLQ1:'))throw 0;o=JSON.parse(decodeURIComponent(escape(atob(t.slice(5)))));if(!o||typeof o.shards!=='number'||typeof o.inv!=='object')throw 0}catch(e){$('sm').textContent='That code is not valid.';return}
+ if(!imp){imp=true;$('sm').textContent='This replaces your current collection. Tap Import again to confirm.';setTimeout(()=>{imp=false},5000);return}
+ imp=false;snapBak();S=migrate(o);save();show=null;$('res').innerHTML='<p>Save code imported.</p>';hud();tiles();$('sv').hidden=true};
+$('svx').onclick=()=>{$('sv').hidden=true};
+/* star chart */
+const seenI=i=>(S.inv[i]||0)>0||S.best[i]!==undefined;
+function chkSets(){if(CH)return;setTimeout(chkAch,0);S.cl=S.cl||{};SETS.forEach((nm,r)=>{const ids=setIds(r);if(!S.cl[r]&&ids.every(seenI)){S.cl[r]=1;gain(BON[r]);say('set',3);sys('Constellation complete: '+nm+'. +'+BON[r]+' shards');hud();save()}})}
+function starChart(){if(!SM)return;const c=$('stc').getContext('2d'),t=performance.now()/1000;c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,600,600);
+ const bg=c.createLinearGradient(0,0,600,600);bg.addColorStop(0,'#0b0820');bg.addColorStop(1,'#04030b');c.fillStyle=bg;c.fillRect(0,0,600,600);
+ for(let i=0;i<90;i++){c.globalAlpha=.15+.3*Math.abs(Math.sin(t+i));c.fillStyle='#fff';c.fillRect((i*97)%600,(i*181)%600,1.2,1.2)}c.globalAlpha=1;
+ SETS.forEach((nm,si)=>{const ids=setIds(si),cx=CC[si][0]*600,cy=CC[si][1]*600,col=si===5?'#b9a4ff':R[si].c,done=ids.every(seenI),pts=ids.map((id,k)=>{const a=k/ids.length*6.2832+si*.9,rd=62+16*(k%2);return[cx+Math.cos(a)*rd,cy+Math.sin(a)*rd,id]});
+  c.strokeStyle=col;c.lineWidth=1.2;for(let k=0;k<pts.length-1;k++){const a=pts[k],b=pts[k+1];c.globalAlpha=seenI(a[2])&&seenI(b[2])?(done?.9:.55):.12;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke()}
+  pts.forEach(p=>{const on=seenI(p[2]);if(on){const g2=c.createRadialGradient(p[0],p[1],0,p[0],p[1],16);g2.addColorStop(0,col);g2.addColorStop(1,'rgba(0,0,0,0)');c.globalAlpha=.6+.3*Math.sin(t*2+p[2]);c.fillStyle=g2;c.beginPath();c.arc(p[0],p[1],16,0,7);c.fill();c.globalAlpha=1;c.fillStyle='#fff';c.beginPath();c.arc(p[0],p[1],3,0,7);c.fill()}else{c.globalAlpha=1;c.fillStyle='#3a3558';c.beginPath();c.arc(p[0],p[1],2.5,0,7);c.fill()}
+   c.globalAlpha=1;c.fillStyle=on?'#ece8ff':'#5b567a';c.font='10px system-ui';c.textAlign='center';c.fillText(on?ITEMS[p[2]].name:'?',p[0],p[1]+18)});
+  c.globalAlpha=1;c.fillStyle=done?col:'#7d78a0';c.font='600 13px Cinzel,Georgia,serif';c.textAlign='center';c.fillText(nm+(done?'':' '+ids.filter(seenI).length+'/'+ids.length),cx,cy-94)});
+ requestAnimationFrame(starChart)}
+$('stb').onclick=()=>{$('stm').hidden=false;if(!SM){SM=true;starChart()}};$('stx').onclick=()=>{$('stm').hidden=true;SM=false};
+/* v5: seeds, stats, achievements, codex, onboarding */
+let rr=()=>Math.random();
+function seedRng(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}let a=h^(h>>>16);return()=>{a=a+1831565813|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function drawPull(){const om=CH?OMENS[0]:OMENS[S.om||0];if(om.ecl)S.eo=1;const i=roll(om),e=om.twice?Math.min(rr(),rr()):rr(),sd=1+(rr()*2e9|0),v=rollV(om.vm||1);return{i,e,sd,v}}
+const discovered=s=>ITEMS.filter((_,i)=>(s.inv[i]||0)>0||s.best[i]!==undefined).length;
+const ACH=[['first','First light','Open your first case.',s=>s.opened>=1],['ten','Warming up','Open 10 cases.',s=>s.opened>=10],['hund','Regular','Open 100 cases.',s=>s.opened>=100],['fivh','Devotee','Open 500 cases.',s=>s.opened>=500],['flaw','Flawless','Land a relic with erosion under 0.001.',s=>s.fl],['clean','Unmarked','Land a relic with erosion under 0.05.',s=>s.cn],['pul','Pulse found','Land a Pulsar.',s=>(s.rc||[])[3]>0],['sing','Event horizon','Land a Singularity.',s=>(s.rc||[])[4]>0],['var','Something different','Land a variant.',s=>Object.keys(s.vs||{}).length>0],['vall','Four faces','Land all four variants.',s=>Object.keys(s.vs||{}).length>=4],['mir','Seed spotter','Land a Mirror or Uniform pattern.',s=>s.mp],['streak','Dust devotion','Land 10 Dust in a row.',s=>(s.mds||0)>=10],['half','Half the sky','Discover 10 relics.',s=>discovered(s)>=10],['all','Every star','Discover every relic.',s=>discovered(s)>=ITEMS.length],['trade','Fair trade','Sign a trade-up contract.',s=>s.tc>0],['set','Constellation','Complete a constellation.',s=>Object.keys(s.cl||{}).length>0],['chal','Challenger','Finish a challenge run.',s=>s.cc>0],['sell','First sale','Sell a relic in the Market.',s=>s.sold>0],['bnty','Bounty hunter','Fulfil a daily bounty.',s=>s.bn>0],['asc','Good timing','Sell a relic of the ascendant tier.',s=>s.asc],['big','Big sale','Sell one relic for 1,000 shards or more.',s=>s.big],['rich','Hoard','Hold 10,000 shards.',s=>s.shards>=10000],['omen','Superstitious','Open a case under an omen.',s=>s.om2],['col','Collector\u2019s friend','Fulfil a collector offer.',s=>s.co>0],['evt','Opportunist','Sell a relic during a market event.',s=>s.eva],['eclp','Into the dark','Open an Eclipse Case.',s=>s.eo],['str3','Three in a row','Clear the daily gauntlet 3 days running.',s=>streakOf(s)>=3],['black','In the black','Reach a lifetime profit of 1,000 shards.',s=>(s.earned||0)-(s.spent||0)>=1000],['hundred','Salvager','Sell 100 relics.',s=>(s.sold||0)>=100],['bn10','Regular contractor','Fill 10 bounties.',s=>(s.bn||0)>=10],['ecset','Dark side','Complete the Black Sun constellation.',s=>s.cl&&s.cl[5]],['allset','Cartographer','Complete every constellation.',s=>s.cl&&Object.keys(s.cl).length>=6],['p10','Pulse collector','Land 10 Pulsars.',s=>(s.rc||[])[3]>=10],['bulk','Bulk buyer','Open ten cases at once.',s=>s.o10],['big10k','Spender','Spend 10,000 shards.',s=>s.spent>=10000],['chron','Chronicler','Read every chapter of the Chronicle.',s=>s.chr]];
+function logPull(it,e,v,sd){S.rc=S.rc||[0,0,0,0,0];S.rc[it.r]++;S.en=(S.en||0)+1;S.es=(S.es||0)+e;(S.hist=S.hist||[]).push({i:ITEMS.indexOf(it),e,v:v||0});if(S.hist.length>200)S.hist.shift();
+ if(e<.001)S.fl=1;if(e<.05)S.cn=1;if(v){(S.vs=S.vs||{})[v]=1}if(sd>0&&(pn(sd)==='Mirror'||pn(sd)==='Uniform'))S.mp=1;S.ds=it.r===0?(S.ds||0)+1:0;S.mds=Math.max(S.mds||0,S.ds);chkAch();setTimeout(qsell,0)}
+function chkAch(){if(CH)return;S.ach=S.ach||{};ACH.forEach(a=>{if(!S.ach[a[0]]&&a[3](S)){S.ach[a[0]]=1;sys('Achievement: '+a[1]);toast(a[1],a[2]);save()}})}
+const TQ=[];let tb=false;
+function toast(t,d,pre){TQ.push([t,d,pre]);if(!tb)nextToast()}
+function nextToast(){if(TQ.length>2){const n=TQ.length;TQ.length=0;TQ.push(['Several achievements unlocked',n+' new. Open Stats to see them.',''])}const q=TQ.shift(),el=$('toast');if(!q){tb=false;el.hidden=true;return}tb=true;el.innerHTML='<b></b><span></span>';el.firstChild.textContent=(q[2]===undefined?'Achievement unlocked: ':q[2])+q[0];el.lastChild.textContent=q[1];el.hidden=false;if(!muted){ac();tone(880,.25,'sine',.06);tone(1320,.35,'sine',.05,.12)}setTimeout(nextToast,2800)}
+const phi=z=>{const t=1/(1+.2316419*Math.abs(z)),d=.3989423*Math.exp(-z*z/2),p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p};
+function statsOpen(){const n=S.en||0,rc=S.rc||[0,0,0,0,0],b=$('stw');let luck='Open 20 or more cases to get a luck rating.';
+ if(n>=20){const mean=rc.reduce((s,c,r)=>s+c*r,0)/n,z=(mean-.61)/(.893/Math.sqrt(n));luck='Luckier than '+Math.round(phi(z)*100)+'% of players over '+n+' opens.'}
+ const dist=R.map((r,i)=>{const o=n?rc[i]/n*100:0,w=Math.min(100,o/r.w*50);return '<div class="dr"><span style="color:'+r.c+'">'+rn(i)+'</span><div class="db"><i style="width:'+w+'%;background:'+r.c+'"></i><u></u></div><em>'+o.toFixed(1)+'% vs '+r.w+'%</em></div>'}).join('');
+ const hist=(S.hist||[]).slice(-20).reverse().map(p=>{const it=ITEMS[p.i];return '<div class="hr"><b style="background:'+R[it.r].c+'"></b><span>'+(P.cb?RS[it.r]+' ':'')+it.name+(p.v?' ('+VN[p.v]+')':'')+'</span><em>'+wearOf(p.e).n+' '+p.e.toFixed(3)+'</em></div>'}).join('')||'<p class="sub">No opens recorded yet.</p>';
+ const row=(l,v)=>'<div class="hr"><b></b><span>'+l+'</span><em>'+v+'</em></div>',led=row('Shards held',fmt(S.shards))+row('Net worth',fmt(netWorth()))+row('Lifetime earned',fmt(S.earned||0))+row('Lifetime spent',fmt(S.spent||0))+row('Relics sold',fmt(S.sold||0)),got=ACH.filter(a=>(S.ach||{})[a[0]]).length,ach=ACH.map(a=>'<div class="ac'+((S.ach||{})[a[0]]?' on':'')+'"><b>'+a[1]+'</b><span>'+a[2]+'</span></div>').join('');
+ b.innerHTML='<h3>Luck and history</h3><p class="sub" id="lk"></p><div class="dist">'+dist+'</div><p class="sub">The gold marker is the stated odds. Average erosion '+(n?(S.es/n).toFixed(3):'n/a')+' against an expected 0.500.</p><h3>Shard ledger</h3><div class="hist">'+led+'</div><h3>Recent opens</h3><div class="hist">'+hist+'</div><h3>Achievements ('+got+' of '+ACH.length+')</h3><div class="achg">'+ach+'</div><button id="sttx">Close</button>';
+ $('lk').textContent=luck;$('sttx').onclick=()=>{$('stt').hidden=true};$('stt').hidden=false}
+$('stab').onclick=statsOpen;
+const PROV=['Swept from the floor of a furnace that never cooled.','Cataloged twice, filed under two different skies.','The only piece that survived the Lamplighters\u2019 fall.','Pilgrims add one each year. Nobody remembers who started.','Its needle burned through three maps before settling.','Pressed into the palms of every first-time keeper.','Found stitched into the hem of a dead star.','Inside: a kitchen, a window, a name worn smooth.','Only the margins are still legible, and they argue.','Poured for guests who arrived before they were invited.','Crowned a king who ruled one tide and abdicated.','Cracked once, so it now shows two different tomorrows.','Lit by a lighthouse keeper who never saw the sea.','The rim is worn where a thousand mouths have wished.','It skips a beat whenever someone nearby tells a lie.','Fits any hand, and then remembers it.','It has never repeated a song, and never finished one.','Wound only on the final evening of an age.','The inscription is blank, and keeps being blank on purpose.','Those who meet its gaze remember a day they never lived.','Cast for a funeral that was cancelled, and rings anyway.','Each knot is a night someone chose not to give up.','Stirred a soup that is still waiting for its guests.','Seen only by those who were about to leave.','Its twin is somewhere, running forward.','A sailor swore it rang before the storm, and again after.','The glassblower is said to have vanished mid-sentence.','Every ending it writes is kinder than the one you expected.','A choir of one thousand, compressed to a syllable.','Lit at the end of a long argument. It never went out.','Lit by a priest who had never seen a sunrise.','Reflects the faces of everyone who looked away.','Warmed by a sun that had already set.','Dug from the shadow, not the ground.','Found under the floorboards of an observatory.','Struck at noon, in the middle of the night.','Pawned for a single day of sunlight.','Worn by someone who wanted to rule the dark.'];
+function codexOpen(){const b=$('cdw');b.innerHTML='<h3>Codex</h3><p class="sub" id="cds"></p><div class="cdl"></div><button id="cdc">Close</button>';let full=0;const L=b.querySelector('.cdl');
+ ITEMS.forEach((it,i)=>{const seen=seenI(i),pc=(S.pc||{})[i]||0,hv=!!(S.pv&&S.pv[i])||S.stash.some(c=>c.i===i&&c.v),done=seen&&pc>=3&&hv,bn=S.best[i];if(done)full++;
+  const d=document.createElement('div');d.className='cd'+(done?' full':'');d.innerHTML='<canvas width="144" height="144"></canvas><div><b></b><small></small><p></p><p class="pv"></p><em></em></div>';
+  glyph(d.querySelector('canvas').getContext('2d'),it,72,72,50,seen?1:.14,0,seen?bn:undefined,i+7);
+  d.querySelector('b').textContent=seen?it.name:'Unknown relic';const sm=d.querySelector('small');sm.textContent=rn(it.r)+' relic';sm.style.color=R[it.r].c;
+  const ps=d.querySelectorAll('p');ps[0].textContent=seen?it.lore:'Not yet discovered.';ps[1].textContent=pc>=3?PROV[i]:(seen?'Pull '+(3-pc)+' more to unlock its history.':'');
+  d.querySelector('em').textContent=seen?'Copies pulled '+pc+(bn!==undefined?'. Best erosion '+bn.toFixed(4):'')+(hv?'. Variant owned':'')+'.':'';L.appendChild(d)});
+ $('cds').textContent=full+' of '+ITEMS.length+' entries complete. Finish an entry by discovering it, pulling 3 copies, and owning a variant.';$('cdc').onclick=()=>{$('cdx').hidden=true};$('cdx').hidden=false}
+$('cdb').onclick=codexOpen;
+const OB=[['Welcome to the Reliquary','Open sealed cases and see which relic remains. Twelve relics orbit the case, they fall away one by one, and the last one is yours. Shards are free and fictional.'],['Five tiers, one guarantee','Dust, Ember, Nebula, Pulsar and Singularity, from common to almost impossible. A Pulsar or better is guaranteed within 25 opens, and the counter at the top shows how close you are.'],['Every relic is unique','Each drop has an erosion value from 0 to 1, and lower is better. It also gets a pattern number, and one drop in 20 is a rare variant. Tap a relic to inspect it and tilt the foil.'],['Shards are real stakes','Every open costs shards, and you earn them back by selling relics in the Market, filling the daily bounties, and timing the Sky, which makes one tier ascendant every three minutes. Omens let you trade cost for a different kind of luck.'],['Do more with your pile','Trade ten relics up a tier, light constellations on the star chart, take on seeded challenges, and fill the codex. Open ten at once or turn on Fast open when you want to move quickly.']];
+let obi=0;
+function obShow(){const o=OB[obi],b=$('obw');b.innerHTML='<h3></h3><p class="sub"></p><div class="dots"></div><div class="row"><button id="obp">Back</button><button class="go" id="obn"></button></div><button id="obs">Skip</button>';
+ b.querySelector('h3').textContent=o[0];b.querySelector('.sub').textContent=o[1];b.querySelector('.dots').innerHTML=OB.map((_,k)=>'<i'+(k===obi?' class="on"':'')+'></i>').join('');
+ $('obn').textContent=obi===OB.length-1?'Begin':'Next';$('obp').hidden=obi===0;$('obp').onclick=()=>{obi--;obShow()};$('obn').onclick=()=>{if(obi===OB.length-1)obClose();else{obi++;obShow()}};$('obs').onclick=obClose;$('obd').hidden=false}
+function obClose(){$('obd').hidden=true;if(!CH){S.ob=1;save()}}
+function obInit(){if(!S.ob&&!S.opened){obi=0;obShow()}}
+$('hwb').onclick=()=>{obi=0;obShow()};
+/* v6: economy, market, bounties, omens, sky */
+const BASE=[12,35,126,504,2016],SLOT=180000,FEE=.9;
+const OMENS=[{n:'Standard case',c:100,d:'Standard odds.'},{n:'Hollow Moon',c:32,w:[80,15,4,.9,.1],nopity:1,d:'Cheap and Dust-heavy. It does not advance your pity counter.'},{n:'Gilded Candle',c:125,vm:4,d:'Variants are four times as likely.'},{n:'Tidal Mercy',c:120,twice:1,d:'Erosion is rolled twice and the cleaner roll is kept.'},{n:'Eventide Surge',c:155,w:[35,35,20,8,2],d:'Much rarer odds at a much higher cost.'},{n:'Eclipse Case',c:500,w:[0,0,70,24,6],nopity:1,ecl:1,d:'A weekly rotating case with four exclusive relics.'}];
+const cost=()=>CH?COST:OMENS[S.om||0].c;
+const skyAt=n=>{const g=seedRng('sky'+n),a=g()*5|0;let w=g()*4|0;if(w>=a)w++;return{a,w}};
+const skyNow=()=>skyAt(Math.floor(Date.now()/SLOT));
+const skyM=r=>{const k=skyNow();return r===k.a?1.5:r===k.w?.75:1};
+const pmul=sd=>sd>0?({'Uniform':3,'Mirror':1.5,'Low number':1.25}[pn(sd)]||1):1;
+const sellVal=(c,sky)=>Math.max(1,Math.round(BASE[ITEMS[c.i].r]*(.4+1.2*(1-c.e))*(c.v?2.5:1)*pmul(c.sd)*(sky===false?1:skyM(ITEMS[c.i].r)*evM(ITEMS[c.i].r,c))*(ITEMS[c.i].ecl?1.25:1)));
+const net=c=>Math.floor(sellVal(c)*FEE);
+const netWorth=()=>S.shards+S.stash.reduce((s,c)=>s+net(c),0);
+const gain=n=>{S.shards+=n;S.earned=(S.earned||0)+n};
+const dayKey=()=>new Date(Date.now()).toISOString().slice(0,10);
+const mmss=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+function skyText(){const ev=evNow(),ec=Math.ceil(((Math.floor(Date.now()/EVSLOT)+1)*EVSLOT-Date.now())/1000),n=Math.floor(Date.now()/SLOT),k=skyAt(n),l=Math.ceil(((n+1)*SLOT-Date.now())/1000),t=r=>'<b style="color:'+R[r].c+'">'+R[r].n+'</b>';return 'Sky: '+t(k.a)+' ascendant (+50%), '+t(k.w)+' waning (\u221225%). Shifts in '+mmss(l)+(ev?'<br>Event: <b>'+ev.n+'</b>, '+ev.d+'. Ends in '+mmss(ec):'')}
+let mkSlot=-1;
+const EVSLOT=900000,OFSLOT=540000;
+function evAt(n){const g=seedRng('ev'+n);if(g()>=.5)return null;const k=g()*4|0,t=g()*5|0;return[{k:'meteor',n:'Meteor shower',d:'all prices +20%'},{k:'crash',n:'Market crash',d:'all prices \u221225%'},{k:'craze',n:'Collector\u2019s craze',t,d:R[t].n+' relics +50%'},{k:'fever',n:'Variant fever',d:'variants worth 60% more'}][k]}
+const evNow=()=>evAt(Math.floor(Date.now()/EVSLOT));
+const evM=(r,c)=>{const e=evNow();if(!e)return 1;return e.k==='meteor'?1.2:e.k==='crash'?.75:e.k==='craze'?(r===e.t?1.5:1):(c&&c.v?1.6:1)};
+let lastEk=Math.floor(Date.now()/EVSLOT);
+function skyTick(){const ek=Math.floor(Date.now()/EVSLOT);if(ek!==lastEk){lastEk=ek;const e=evAt(ek);if(e){sys('Market event: '+e.n);say('event',3);toast('Market event',e.n+': '+e.d,'')}}$('sky').innerHTML=skyText();if(!$('mkt').hidden){if(Math.floor(Date.now()/SLOT)!==mkSlot)marketRender();else{const e=$('mks');if(e)e.innerHTML=skyText()}}}
+function updCost(){const cs=cost();ecl=!CH&&(S.om||0)===5;document.body.classList.toggle('ecl',ecl);$('go').querySelector('small').textContent=!CH&&S.shards<cs?'Visit the Market':cs+' shards';$('go10').querySelector('small').textContent=fmt(cs*10)+' shards';$('omb').textContent='Case: '+(CH?'locked':OMENS[S.om||0].n)}
+function bountyList(){const g=seedRng('bounty-'+dayKey()),f=x=>Math.round(x/5)*5,r0=g()<.5?0:1,c0=.25+g()*.2,c1=.2+g()*.2,hard=g()<.65,c2=hard?.35+g()*.15:.6;
+ return[{r:r0,cap:c0,v:0,rw:f(BASE[r0]*3.8)},{r:2,cap:c1,v:0,rw:f(BASE[2]*3.4)},{r:hard?3:2,cap:c2,v:hard?0:1,rw:f(hard?BASE[3]*2.9:BASE[2]*6)}]}
+const bText=b=>'Deliver a '+(b.v?'variant ':'')+R[b.r].n+' relic with erosion under '+b.cap.toFixed(2)+'.';
+function bFind(b){let k=-1;S.stash.forEach((c,j)=>{if(ITEMS[c.i].r===b.r&&c.e<=b.cap&&(!b.v||c.v)&&(k<0||c.e>S.stash[k].e))k=j});return k}
+function keepers(){const m={};S.stash.forEach((c,k)=>{if(m[c.i]===undefined||c.e<S.stash[m[c.i]].e)m[c.i]=k});return new Set(Object.values(m))}
+function sellMany(ix){if(!ix.length)return;ac();const k0=skyNow();let tot=0,big=0,asc=0;ix=[...new Set(ix)].sort((a,b)=>b-a);
+ ix.forEach(j=>{const c=S.stash[j],v=net(c);tot+=v;if(v>=1000)big=1;if(ITEMS[c.i].r===k0.a)asc=1;S.inv[c.i]=Math.max(0,(S.inv[c.i]||0)-1);S.stash.splice(j,1)});
+ gain(tot);S.sold=(S.sold||0)+ix.length;if(big)S.big=1;if(asc)S.asc=1;if(evNow())S.eva=1;tone(660,.15,'triangle',.07);tone(990,.25,'sine',.05,.1);sys('Sold '+ix.length+' for '+fmt(tot)+' shards');if(ix.length>=3)say('sell',2);hud();tiles();save();marketRender();chkAch()}
+function marketOpen(){if(CH){$('res').innerHTML='<p>The Market is closed during challenge runs.</p>';return}ac();$('mkt').hidden=false;marketRender()}
+function marketRender(){const b=$('mkw'),sl=Math.floor(Date.now()/SLOT);mkSlot=sl;if(!S.bd||S.bd.d!==dayKey())S.bd={d:dayKey(),done:{}};
+ const keep=keepers(),ent=S.stash.map((c,j)=>({c,j,v:net(c)})).sort((a,b)=>b.v-a.v),spare=r=>ent.filter(x=>ITEMS[x.c.i].r===r&&!keep.has(x.j)&&!x.c.v),prof=(S.earned||0)-(S.spent||0),ago=Date.now()-(S.al||0),can=S.shards<100&&ago>=1800000;
+ let h='<h3>Sky Market</h3><p class="sub" id="mks"></p><div class="hud mini"><div class="st"><small>Shards</small><b>'+fmt(S.shards)+'</b></div><div class="st"><small>Net worth</small><b>'+fmt(netWorth())+'</b></div><div class="st"><small>Profit</small><b>'+(prof>=0?'+':'\u2212')+fmt(Math.abs(prof))+'</b></div></div>';
+ h+='<p class="sub">'+(can?'You are nearly out. The alms are yours to claim.':S.shards<100?'Alms are ready again in '+Math.ceil((1800000-ago)/60000)+' minutes.':'Alms are offered only when you hold under 100 shards.')+'</p>'+(can?'<button class="go" style="padding:8px 18px" data-a="alms">Claim 300 shards</button>':'');
+ h+='<h3>Daily bounties</h3><p class="sub">New ones arrive in '+(()=>{const mu=864e5-(Date.now()%864e5);return Math.floor(mu/36e5)+'h '+Math.floor(mu%36e5/6e4)+'m'})()+' (midnight UTC).</p>';bountyList().forEach((o,k)=>{const dn=S.bd.done[k],ok=bFind(o)>=0;h+='<div class="bt'+(dn?' done':'')+'"><span>'+bText(o)+'<br><small>Reward '+fmt(o.rw)+' shards</small></span><button class="sm" data-a="bnty" data-k="'+k+'"'+(dn||!ok?' disabled':'')+'>'+(dn?'Done':ok?'Deliver':'No match')+'</button></div>'});
+ h+='<h3>Collector offers</h3>';offers().forEach(o=>{const dn=S.of&&S.of[o.n],j=oFind(o),left=Math.max(1,Math.ceil(((o.n+2)*OFSLOT-Date.now())/60000));h+='<div class="bt'+(dn?' done':'')+'"><span>A collector wants '+o.d+'.<br><small>Pays '+o.mult+' times its value, no fee. '+left+' min left.</small></span><button class="sm" data-a="off" data-n="'+o.n+'"'+(dn||j<0?' disabled':'')+'>'+(dn?'Done':j>=0?'Deliver':'No match')+'</button></div>'});
+ h+='<h3>Salvage</h3><p class="sub">Spare copies keep your cleanest of each relic and every variant. Prices include the Sky, minus the 10% fee.</p><div class="bulk">';
+ for(let r=0;r<4;r++){const s=spare(r);h+='<button class="sm" data-a="tier" data-r="'+r+'"'+(s.length?'':' disabled')+'>Spare '+R[r].n+' ('+s.length+') +'+fmt(s.reduce((t,x)=>t+x.v,0))+'</button>'}
+ h+='</div><div class="mlist">'+(ent.slice(0,25).map(x=>{const it=ITEMS[x.c.i],m=skyM(it.r)*evM(it.r,x.c);return '<div class="mr"><b style="background:'+R[it.r].c+'"></b><span>'+(P.cb?RS[it.r]+' ':'')+it.name+(x.c.v?' ('+VN[x.c.v]+')':'')+' <small>'+x.c.e.toFixed(3)+(m>1?' \u25B2':m<1?' \u25BC':'')+'</small></span><em>'+fmt(x.v)+'</em><button class="sm" data-a="sell" data-k="'+x.j+'">Sell</button></div>'}).join('')||'<p class="sub">Nothing to sell yet. Relics you open from now on can be sold here.</p>')+'</div><button id="mkx">Close</button>';
+ b.innerHTML=h;$('mks').innerHTML=skyText();$('mkx').onclick=()=>{$('mkt').hidden=true};
+ b.onclick=ev=>{const t=ev.target.closest('[data-a]');if(!t||t.disabled)return;const a=t.dataset.a,k=+t.dataset.k;
+  if(a==='sell')sellMany([k]);else if(a==='tier')sellMany(spare(+t.dataset.r).map(x=>x.j));
+  else if(a==='alms'){if(S.shards<100&&Date.now()-(S.al||0)>=1800000){S.al=Date.now();gain(300);sys('Alms received: 300 shards');hud();save();marketRender()}}
+  else if(a==='off'){const n=+t.dataset.n,o=offers().find(x=>x.n===n);if(!o||(S.of&&S.of[n]))return;const j=oFind(o);if(j<0)return;const c=S.stash[j],pay=Math.round(sellVal(c,false)*o.mult);S.inv[c.i]=Math.max(0,(S.inv[c.i]||0)-1);S.stash.splice(j,1);(S.of=S.of||{})[n]=1;Object.keys(S.of).forEach(k=>{if(+k<n-4)delete S.of[k]});S.co=(S.co||0)+1;gain(pay);ac();tone(587,.2,'triangle',.07);tone(880,.3,'sine',.06,.12);sys('Collector paid '+pay+' shards');say('offer',2);hud();tiles();save();marketRender();chkAch()}
+  else if(a==='bnty'){const o=bountyList()[k],j=bFind(o);if(S.bd.done[k]||j<0)return;const c=S.stash[j];S.inv[c.i]=Math.max(0,(S.inv[c.i]||0)-1);S.stash.splice(j,1);S.bd.done[k]=1;S.bn=(S.bn||0)+1;gain(o.rw);ac();tone(523,.2,'triangle',.07);tone(784,.3,'sine',.06,.12);sys('Bounty filled: +'+o.rw+' shards');say('offer',2);hud();tiles();save();marketRender();chkAch()}}}
+function omenOpen(){if(CH){$('res').innerHTML='<p>Omens are off during challenge runs.</p>';return}const b=$('omw');b.innerHTML='<h3>Choose a case or omen</h3><p class="sub">Your choice applies to every open until you change it.</p><div class="oml"></div><button id="omx">Close</button>';const L=b.querySelector('.oml');
+ OMENS.forEach((o,i)=>{const d=document.createElement('button'),w=o.w||R.map(r=>r.w);d.className='om'+((S.om||0)===i?' on':'');d.innerHTML='<b></b><span></span><small></small>';d.querySelector('b').textContent=o.n+', '+o.c+' shards';d.querySelector('span').textContent=o.d;d.querySelector('small').textContent=R.map((r,j)=>r.n+' '+w[j]+'%').join(', ')+(o.vm?'. Variants '+Math.round(5*o.vm)+'%':'');if(o.ecl){const ms=(wkIdx()+1)*6048e5+3*864e5-Date.now();d.querySelector('small').textContent='This week: '+eclPool().map(j=>ITEMS[j].name).join(', ')+'. Odds: Nebula 70%, Pulsar 24%, Singularity 6%. Rotates in '+Math.floor(ms/864e5)+'d '+Math.floor(ms%864e5/36e5)+'h.'}d.onclick=()=>{S.om=i;save();hud();$('omn').hidden=true};L.appendChild(d)});
+ $('omx').onclick=()=>{$('omn').hidden=true};$('omn').hidden=false}
+$('mkb').onclick=marketOpen;$('stS').onclick=marketOpen;$('omb').onclick=omenOpen;
+setInterval(skyTick,1000);skyTick();
+/* v7: recovery, offers, eclipse, accessibility */
+const RS=['\u25CF','\u25C6','\u25B2','\u2605','\u2726'],HP=[12,[20,20,20],[30,30,30,30,60],[40,30,40,30,90],[70,40,70,40,70,40,220]];
+const rn=r=>(P.cb?RS[r]+' ':'')+R[r].n;
+const buzz=p=>{if(P.hap&&navigator.vibrate)try{navigator.vibrate(p)}catch(e){}};
+const ECL=ITEMS.map((_,i)=>i).filter(i=>ITEMS[i].ecl),wkIdx=()=>Math.floor((Date.now()-3*864e5)/6048e5),eclPool=()=>{const k=wkIdx()%2*4;return ECL.slice(k,k+4)};
+const setIds=r=>ITEMS.map((_,i)=>i).filter(i=>r===5?ITEMS[i].ecl:ITEMS[i].r===r&&!ITEMS[i].ecl);
+function snapBak(){try{localStorage.setItem(BAK,JSON.stringify(S));localStorage.setItem(BAK+'-t',String(Date.now()));lastBak=Date.now()}catch(e){}}
+function bakInfo(){try{const b=localStorage.getItem(BAK),t=+localStorage.getItem(BAK+'-t');if(!b)return 'No backup yet. One is made automatically while you play.';const m=Math.max(0,Math.round((Date.now()-t)/60000));return 'Backup available from '+(m<2?'a moment':m<120?m+' minutes':Math.round(m/60)+' hours')+' ago.'}catch(e){return ''}}
+let rbk=false;$('sbk').onclick=()=>{let b=null,o=null;try{b=localStorage.getItem(BAK);o=JSON.parse(b)}catch(e){}if(!validSave(o)){$('sm').textContent='No usable backup found.';return}
+ if(!rbk){rbk=true;$('sm').textContent='This swaps your collection with the backup. Tap again to confirm. Your current one becomes the new backup.';setTimeout(()=>{rbk=false},5000);return}
+ rbk=false;const cur=JSON.stringify(S);S=migrate(o);try{localStorage.setItem(BAK,cur);localStorage.setItem(BAK+'-t',String(Date.now()))}catch(e){}save();show=null;$('res').innerHTML='<p>Backup restored.</p>';hud();tiles();$('scd').value=enc(S);$('sm').textContent='Backup restored.'};
+function offerAt(n){const g=seedRng('offer'+n),t=g()*5|0,r=g()*3|0,v=1+(g()*4|0);
+ return[{n,d:'a variant relic of any kind',test:c=>!!c.v,mult:3.5},{n,d:'a '+VN[v]+' relic',test:c=>c.v===v,mult:4},{n,d:'a relic with a Mirror or Uniform pattern',test:c=>c.sd>0&&['Mirror','Uniform'].includes(pn(c.sd)),mult:3.5},{n,d:'an Unmarked '+R[r].n+' relic (erosion under 0.05)',test:c=>ITEMS[c.i].r===r&&c.e<.05,mult:3.5},{n,d:'a ruined '+R[r].n+' relic (erosion over 0.85)',test:c=>ITEMS[c.i].r===r&&c.e>.85,mult:4.5}][t]}
+const offers=()=>{const n=Math.floor(Date.now()/OFSLOT);return[offerAt(n),offerAt(n-1)]};
+function oFind(o){let k=-1,bv=1e9;S.stash.forEach((c,j)=>{if(o.test(c)){const v=sellVal(c,false);if(v<bv){bv=v;k=j}}});return k}
+function setOpen(){const b=$('setw');b.innerHTML='<h3>Settings</h3><div class="sl"></div><h3>What\u2019s new</h3><p class="sub" id="news"></p><button id="setx">Close</button>';const L=b.querySelector('.sl');$('news').textContent=NEWS;
+ const tog=(k,label,desc)=>{const d=document.createElement('button');d.className='om'+(P[k]?' on':'');d.setAttribute('aria-pressed',String(!!P[k]));d.innerHTML='<b></b><span></span>';d.querySelector('b').textContent=label+': '+(P[k]?'on':'off');d.querySelector('span').textContent=desc;d.onclick=()=>{P[k]=!P[k];saveP();applyP();setOpen()};L.appendChild(d)};
+ tog('rm','Reduce motion','Stops screen shake and flashes, and trims particles.');tog('cb','Colorblind-safe cues','Adds a shape beside every rarity: circle, diamond, triangle, star, spark.');tog('hap','Haptics','Vibrates on eliminations and reveals where your device supports it.'+(navigator.vibrate?'':' This device does not support it.'));
+ const v=document.createElement('div');v.className='om';v.innerHTML='<b>Volume</b><input type="range" min="0" max="100" aria-label="Volume">';const r=v.querySelector('input');r.value=Math.round(P.vol*100);r.oninput=()=>{P.vol=r.value/100;if(MG)MG.gain.value=P.vol;saveP()};L.appendChild(v);
+ $('setx').onclick=()=>{$('set').hidden=true};$('set').hidden=false}
+function applyP(){document.body.classList.toggle('rm',!!P.rm);if(MG)MG.gain.value=P.vol;tiles()}
+$('setb').onclick=setOpen;applyP();
+if(loadNote)setTimeout(()=>toast('Save notice',loadNote,''),700);
+/* v8: polish */
+let idleT=false,onScr=true;try{new IntersectionObserver(es=>{onScr=es[0].isIntersecting}).observe(cv)}catch(e){}
+fast=!!P.fast;chatOn=P.chat!==false;muted=!!P.mute;
+$('fast').textContent='Fast open: '+(fast?'on':'off');$('chatb').textContent='Chat: '+(chatOn?'on':'off');$('mute').textContent=muted?'Sound off':'Sound on';
+document.querySelectorAll('.ov').forEach(ov=>{ov.addEventListener('click',e=>{if(e.target===ov){ov.hidden=true;if(ov.id==='ins')IN=null;if(ov.id==='stm')SM=false}});
+ new MutationObserver(()=>{if(!ov.hidden){ov._ret=document.activeElement;const f=[...ov.querySelectorAll('button:not([disabled]),input,textarea')].find(x=>x.offsetParent!==null);setTimeout(()=>{try{f&&f.focus({preventScroll:true})}catch(e){}},30)}else if(ov._ret&&document.contains(ov._ret)){try{ov._ret.focus({preventScroll:true})}catch(e){}ov._ret=null}}).observe(ov,{attributes:true,attributeFilter:['hidden']})});
+/* v9: chronicle, daily, filters, quick sell, extras */
+const NEWS='Daily gauntlet with streak bonuses, the Chronicle story, quick sell on results, collection filters, keyboard shortcuts (O, T and M), tap the case to speed up an open, and shard change indicators.';
+const CHAP=[['The Quiet Hearth','Before the vaults there was a furnace that never cooled. The first keepers swept its ash into jars and called the jars relics, because nothing else had survived. They did not yet know the ash was listening.'],['The Kindled Road','The ash learned to walk. It followed warmth across the dark and left a road of small fires for anyone who had lost their way. Some say the road is still lit, and that the lost still follow it.'],['The Drowned Court','At the bottom of the sky there was a court that had never seen water, yet everyone in it spoke as if drowning. They traded in tides and hours. Their crowns were driftwood, and their laws were whatever the moon allowed.'],['The Sleeping Engine','Something vast keeps time beneath the relics. It does not run so much as breathe. The pulsars are its heartbeat, and the keepers learned to open cases only between beats.'],['The Twin Thrones','Two thrones face each other across an empty hall. Neither has ever held a ruler. Whoever gathers both stops being a keeper and starts being a story.'],['The Black Sun','Once a century the sun forgets to rise, and for a few minutes the sky is honest. The Eclipse relics are what the dark left behind when it remembered itself. The Keeper of the Reliquary is not a person. It is whoever opens the case at that moment.']];
+function chronOpen(){const b=$('chw');b.innerHTML='<h3>Chronicle</h3><p class="sub">Complete a constellation on the star chart to unlock its chapter.</p><div class="cdl"></div><button id="chx">Close</button>';const L=b.querySelector('.cdl');let n=0;
+ CHAP.forEach((c,r)=>{const un=S.cl&&S.cl[r],d=document.createElement('div');d.className='cd'+(un?' full':'');d.style.gridTemplateColumns='1fr';d.innerHTML='<b></b><p></p>';d.querySelector('b').textContent=un?c[0]:'Chapter '+(r+1);d.querySelector('p').textContent=un?c[1]:'Complete '+c[0]+' to read this chapter.';if(un)n++;L.appendChild(d)});
+ if(n===CHAP.length&&!CH){S.chr=1;chkAch()}$('chx').onclick=()=>{$('chv').hidden=true};$('chv').hidden=false}
+$('chrb').onclick=chronOpen;
+const dayStr=t=>new Date(t).toISOString().slice(0,10);
+function streakOf(s){const d=s.dly||{};let t=Date.parse(dayKey()+'T00:00:00Z');if(d[dayStr(t)]===undefined)t-=864e5;let n=0;while(d[dayStr(t)]!==undefined){n++;t-=864e5}return n}
+const dailyStreak=()=>streakOf(S),dailyKey=()=>'daily-'+dayKey();
+const CF=[['all','All'],['owned','Owned'],['missing','Missing'],['var','Variants'],['ecl','Eclipse']];
+CF.forEach(f=>{const b=document.createElement('button');b.textContent=f[1];b.dataset.f=f[0];if(f[0]==='all')b.classList.add('on');b.onclick=()=>{cfil=f[0];[...$('cf').children].forEach(x=>x.classList.toggle('on',x.dataset.f===cfil));tiles()};$('cf').appendChild(b)});
+function qsell(){if(CH||!show)return;const rs=$('res'),ev=rs.querySelector('.ev');if(!ev||rs.querySelector('.qs')||$('tg'))return;const c=S.stash[S.stash.length-1];if(!c||c.i!==ITEMS.indexOf(show.it))return;
+ const b=document.createElement('button');b.className='sm qs';b.textContent='Sell for '+fmt(net(c))+' shards';b.onclick=()=>{const j=S.stash.indexOf(c);if(j>=0)sellMany([j]);b.remove()};ev.after(b)}
+$('sht').onclick=async()=>{if(!show)return;const it=show.it,r=R[it.r],w=wearOf(show.e),t='I pulled '+(show.v?VN[show.v]+' ':'')+it.name+' ('+r.n+', '+w.n+', erosion '+show.e.toFixed(4)+', pattern #'+pat(show.sd)+') in The Reliquary.';try{await navigator.clipboard.writeText(t);$('sht').textContent='Copied'}catch(e){$('sht').textContent='Copy failed'}setTimeout(()=>{$('sht').textContent='Copy text'},1500)};
+CHT.idle.push('rolling with the tide','one more','sky looks good','calm before the pull','touch grass after this one');
+Object.assign(CHT,{sell:['salvage gang','cashing out','cleared the shelf','market diff','selling the evidence'],offer:['collector W','paid in full','that\u2019s a good deal','bounty board enjoyer','contract complete'],ecl:['THE ECLIPSE','dark mode pull','umbral vibes','moon moment','the sun blinked'],event:['market is moving','EVENT','prices are wild','sell sell sell','hold hold hold']});
+size();hud();tiles();obInit();requestAnimationFrame(step);
+</script>
+</body>
+</html>
