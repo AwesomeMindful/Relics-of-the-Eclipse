@@ -854,7 +854,23 @@ $('accountLoad').onclick = async () => {
   }
 
   snapBak();
+
+  const savedEconomy = {
+    shards: S.shards,
+    opened: S.opened,
+    spent: S.spent,
+    pity: S.pity,
+    inv: S.inv,
+    best: S.best,
+    pc: S.pc,
+    pv: S.pv,
+    stash: S.stash
+  };
+
   S = migrate(data.save_data);
+  
+  Object.assign(S, savedEconomy);
+  
   cloudSaveTimestamp = data.imported_at;
   cloudSyncUserId = user.id;
   cloudSyncEnabled = true;
