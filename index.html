@@ -506,9 +506,130 @@ function step(now){if(!A&&!parts.length&&fl<=0&&(document.hidden||!onScr||(idleT
 /* game logic */
 function roll(om){let r;if(S.pity>=PITY)r=rr()<.2?4:3;else{let x=rr()*100;r=0;for(let i=0;i<5;i++){const wi=om&&om.w?om.w[i]:R[i].w;if(x<wi){r=i;break}x-=wi}}
  S.pity=r>=3?0:(om&&om.nopity?S.pity:S.pity+1);const pool=ITEMS.map((_,i)=>i).filter(i=>ITEMS[i].r===r&&(om&&om.ecl?eclPool().includes(i):!ITEMS[i].ecl));return pool[rr()*pool.length|0]}
-function openCase(){if(A)return;const cs=cost();if(S.shards<cs&&CH&&!CH.budget)S.shards=5000;if(S.shards<cs){if(!CH)marketOpen();return}ac();S.shards-=cs;S.spent+=cs;S.opened++;if(!CH&&S.om)S.om2=1;
- const dp=drawPull(),win=dp.i,ids=shuffle(ITEMS.map((_,i)=>i).filter(i=>i!==win)).slice(0,11);ids.push(win);shuffle(ids);
- const cards=ids.map((id,i)=>({id,ang:i/12*6.2832,a:1,dead:false})),order=shuffle(cards.filter(c=>c.id!==win)),times=[];let tt=2000;const ru=ITEMS[order[10].id].r,near=ru>=3&&ru>ITEMS[win].r;order.forEach((c,i)=>{if(i===10&&near)tt+=1500;times.push(tt);tt+=170+i*38});
+
+async function openCase(){
+  if(A||openCase.busy)return;
+
+  const serverCase=!CH&&(S.om||0)===0;
+  let dp;
+
+  if(serverCase){
+    openCase.busy=true;
+    $('go').disabled=true;
+
+    try{
+      const {data,error}=await db.rpc('open_standard_case');
+
+      if(error)throw error;
+
+      if(
+        !data||
+        !Number.isInteger(data.item_index)||
+        data.item_index<0||
+        data.item_index>=ITEMS.length
+      ){
+        throw new Error('Invalid reward returned by the server.');
+      }
+
+      // Use the database's authoritative result.
+      S.shards=Number(data.shards);
+      S.opened=Number(data.opened);
+      S.spent=Number(data.spent);
+      S.pity=Number(data.pity);
+
+      dp={
+        i:data.item_index,
+        e:Number(data.erosion),
+        sd:Number(data.pattern_seed),
+        v:Number(data.variant)
+      };
+
+    }catch(err){
+      console.error('Case opening failed:',err);
+      $('res').textContent='Opening failed: '+err.message;
+      $('go').disabled=false;
+      openCase.busy=false;
+      return;
+    }
+
+  }else{
+    // Preserve existing Challenge and Omen behavior.
+    const cs=cost();
+
+    if(S.shards<cs&&CH&&!CH.budget)S.shards=5000;
+
+    if(S.shards<cs){
+      if(!CH)marketOpen();
+      return;
+    }
+
+    ac();
+    S.shards-=cs;
+    S.spent+=cs;
+    S.opened++;
+
+    if(!CH&&S.om)S.om2=1;
+
+    dp=drawPull();
+  }
+
+  const win=dp.i;
+  const ids=shuffle(
+    ITEMS.map((_,i)=>i).filter(i=>i!==win)
+  ).slice(0,11);
+
+  ids.push(win);
+  shuffle(ids);
+
+  const cards=ids.map((id,i)=>({
+    id,
+    ang:i/12*6.2832,
+    a:1,
+    dead:false
+  }));
+
+  const order=shuffle(cards.filter(c=>c.id!==win));
+  const times=[];
+  let tt=2000;
+
+  const ru=ITEMS[order[10].id].r;
+  const near=ru>=3&&ru>ITEMS[win].r;
+
+  order.forEach((c,i)=>{
+    if(i===10&&near)tt+=1500;
+    times.push(tt);
+    tt+=170+i*38;
+  });
+
+  A={
+    t:0,
+    cards,
+    win,
+    order,
+    times,
+    k:0,
+    tEnd:tt+700,
+    near,
+    hbt:0,
+    v:dp.v,
+    e:dp.e,
+    sd:dp.sd
+  };
+
+  openCase.busy=false;
+  show=null;
+
+  $('res').innerHTML='<p>The case is unsealing…</p>';
+  $('go').disabled=true;
+
+  ac();
+  tone(130,.6,'sine',.25,0,50);
+  humStart();
+  say('open',3);
+  hud();
+  save();
+}
+
  A={t:0,cards,win,order,times,k:0,tEnd:tt+700,near,hbt:0,v:dp.v,e:dp.e,sd:dp.sd};show=null;
  $('res').innerHTML='<p>The case is unsealing…</p>';$('go').disabled=true;
  tone(130,.6,'sine',.25,0,50);humStart();say('open',3);hud();save()}
