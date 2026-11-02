@@ -649,6 +649,61 @@ let rt=null;$('reset').onclick=()=>{if(CH)return;const b=$('reset');if(!rt){b.te
 let fast=false,IN=null;const TU={r:0,sel:new Set()},ic=$('ic'),ovs=['ins','tu','sh','sv','chm','stm','stt','cdx','obd','mkt','omn','set','chv'];
 const shake=()=>{if(P.rm)return;const st=$('stage');st.classList.remove('shake');void st.offsetWidth;st.classList.add('shake')};
 function grant(i,e,sd,v){const first=S.best[i]===undefined&&!(S.inv[i]>0),p=S.best[i];S.inv[i]=(S.inv[i]||0)+1;if(p===undefined||e<p)S.best[i]=e;S.pc=S.pc||{};S.pc[i]=(S.pc[i]||0)+1;if(v){(S.pv=S.pv||{})[i]=1}S.stash.push({i,e,sd,v});if(S.stash.length>1500)S.stash.shift();return{first,nb:p!==undefined&&e<p}}
+async function loadServerInventory(){
+  if(!db||!currentUser)return;
+
+  try{
+    const {data,error}=await db
+      .from('player_items')
+      .select('item_data')
+      .order('created_at',{ascending:true});
+
+    if(error)throw error;
+
+    const inv={};
+    const best={};
+    const pc={};
+    const pv={};
+    const stash=[];
+
+    for(const row of data||[]){
+      const item=row.item_data;
+      const i=Number(item.i);
+      const e=Number(item.e);
+      const sd=Number(item.sd);
+      const v=Number(item.v||0);
+
+      if(!Number.isInteger(i)||i<0||i>=ITEMS.length)continue;
+      if(!Number.isFinite(e)||!Number.isFinite(sd))continue;
+
+      inv[i]=(inv[i]||0)+1;
+      pc[i]=(pc[i]||0)+1;
+
+      if(best[i]===undefined||e<best[i]){
+        best[i]=e;
+      }
+
+      if(v)pv[i]=1;
+
+      stash.push({i,e,sd,v});
+    }
+
+    S.inv=inv;
+    S.best=best;
+    S.pc=pc;
+    S.pv=pv;
+    S.stash=stash.slice(-1500);
+
+    hud();
+    tiles();
+    save();
+
+    console.log('Server inventory loaded:',stash.length,'relics');
+
+  }catch(error){
+    console.error('Inventory loading failed:',error);
+  }
+} 
 function land(win,e,sd,tag,v){ac();const it=ITEMS[win],r=R[it.r],w=wearOf(e),gr=grant(win,e,sd,v);show={it,e,sd,v};if(v)tone(1175,.6,'sine',.06,.1);stinger(it.r);burst(it.r,r.c);if(e<.05)burst(2,'#ffe48f');fl=.5+it.r*.12;flc=r.c;if(it.r>=3)shake();
  const rs=$('res');rs.style.setProperty('--rar',r.c);rs.innerHTML='<div class="rk"></div><h2></h2><p></p><div class="bar"><i style="left:'+e*100+'%"></i></div><div class="ev"></div>';
  rs.querySelector('.rk').textContent=(tag?tag+': ':'')+rn(it.r)+(gr.first?', new to your collection':'');rs.querySelector('h2').textContent=it.name;rs.querySelector('p').textContent=it.lore;rs.querySelector('.ev').textContent=w.n+', erosion '+e.toFixed(8)+(e<.001?'. Flawless.':gr.nb?'. Your cleanest yet.':'')+extra(v,sd);react(it.r,e,v,sd);hud();tiles();save();setTimeout(qsell,0)}
