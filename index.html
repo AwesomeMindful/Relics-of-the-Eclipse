@@ -1291,9 +1291,11 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
   
     showUser(session?.user ?? null);
   
+    console.log('Auth event:', _event, 'User:', nextUserId);
+    
     if (nextUserId) {
       setTimeout(() => loadServerInventory(), 0);
-    }
+        }
   });
   window.addEventListener('online', () => {
     if (cloudSyncEnabled) {
