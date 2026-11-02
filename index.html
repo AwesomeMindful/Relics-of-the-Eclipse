@@ -753,13 +753,35 @@ size();hud();tiles();obInit();requestAnimationFrame(step);
     status.textContent = message;
   }
 
-  function showUser(user) {
+    async function showUser(user) {
     loggedOut.hidden = !!user;
     loggedIn.hidden = !user;
-    userLabel.textContent = user ? 'Logged in as: ' + user.email : '';
-    if (user) showStatus('Account connected.');
+  
+    if (!user) {
+      userLabel.textContent = '';
+      return;
+    }
+  
+    userLabel.textContent = 'Loading profile...';
+  
+    const { data, error } = await db
+      .from('profiles')
+      .select('username, shards')
+      .eq('id', user.id)
+      .single();
+  
+    if (error) {
+      userLabel.textContent = 'Logged in as: ' + user.email;
+      showStatus('Logged in, but profile could not load: ' + error.message);
+      return;
+    }
+  
+    userLabel.textContent =
+      'Username: ' + (data.username || 'Not set') +
+      ' | Shards: ' + data.shards;
+  
+    showStatus('Account connected.');
   }
-
   async function register() {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
