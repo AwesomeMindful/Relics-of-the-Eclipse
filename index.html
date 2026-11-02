@@ -670,5 +670,176 @@ CHT.idle.push('rolling with the tide','one more','sky looks good','calm before t
 Object.assign(CHT,{sell:['salvage gang','cashing out','cleared the shelf','market diff','selling the evidence'],offer:['collector W','paid in full','that\u2019s a good deal','bounty board enjoyer','contract complete'],ecl:['THE ECLIPSE','dark mode pull','umbral vibes','moon moment','the sun blinked'],event:['market is moving','EVENT','prices are wild','sell sell sell','hold hold hold']});
 size();hud();tiles();obInit();requestAnimationFrame(step);
 </script>
+ <!-- ACCOUNT PANEL -->
+<style>
+  #accountPanel {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 9999;
+    width: min(320px, calc(100vw - 36px));
+    padding: 18px;
+    background: #17131f;
+    color: #f4e9d0;
+    border: 1px solid #9b783d;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px #0009;
+    font-family: inherit;
+  }
+
+  #accountPanel h3 {
+    margin: 0 0 12px;
+    color: #e5bd70;
+  }
+
+  #accountPanel input {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 5px 0;
+    padding: 10px;
+    color: #fff;
+    background: #282231;
+    border: 1px solid #66543b;
+    border-radius: 6px;
+  }
+
+  #accountPanel button {
+    margin: 6px 4px 0 0;
+    padding: 9px 12px;
+    color: #17131f;
+    background: #d4ad65;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  #accountStatus {
+    margin-top: 10px;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+</style>
+
+<div id="accountPanel">
+  <h3>Player Account</h3>
+
+  <div id="accountLoggedOut">
+    <input id="accountEmail" type="email" placeholder="Email address">
+    <input id="accountPassword" type="password" placeholder="Password">
+
+    <button id="accountRegister">Register</button>
+    <button id="accountLogin">Log In</button>
+  </div>
+
+  <div id="accountLoggedIn" hidden>
+    <div id="accountUser"></div>
+    <button id="accountLogout">Log Out</button>
+  </div>
+
+  <div id="accountStatus">Not logged in.</div>
+</div>
+
+<script>
+(() => {
+  const emailInput = document.getElementById('accountEmail');
+  const passwordInput = document.getElementById('accountPassword');
+  const status = document.getElementById('accountStatus');
+  const loggedOut = document.getElementById('accountLoggedOut');
+  const loggedIn = document.getElementById('accountLoggedIn');
+  const userLabel = document.getElementById('accountUser');
+
+  function showStatus(message) {
+    status.textContent = message;
+  }
+
+  function showUser(user) {
+    loggedOut.hidden = !!user;
+    loggedIn.hidden = !user;
+    userLabel.textContent = user ? 'Logged in as: ' + user.email : '';
+    if (user) showStatus('Account connected.');
+  }
+
+  async function register() {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || password.length < 6) {
+      showStatus('Enter an email and a password of at least 6 characters.');
+      return;
+    }
+
+    showStatus('Creating account...');
+
+    const { data, error } = await db.auth.signUp({
+      email,
+      password
+    });
+
+    if (error) {
+      showStatus(error.message);
+      return;
+    }
+
+    if (data.session) {
+      showUser(data.user);
+      showStatus('Account created successfully!');
+    } else {
+      showStatus('Account created! Check your email for a confirmation link.');
+    }
+  }
+
+  async function login() {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+      showStatus('Enter your email and password.');
+      return;
+    }
+
+    showStatus('Logging in...');
+
+    const { data, error } = await db.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      showStatus(error.message);
+      return;
+    }
+
+    showUser(data.user);
+  }
+
+  async function logout() {
+    const { error } = await db.auth.signOut();
+
+    if (error) {
+      showStatus(error.message);
+      return;
+    }
+
+    showUser(null);
+    showStatus('Logged out.');
+  }
+
+  document.getElementById('accountRegister').addEventListener('click', register);
+  document.getElementById('accountLogin').addEventListener('click', login);
+  document.getElementById('accountLogout').addEventListener('click', logout);
+
+  db.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      showStatus(error.message);
+      return;
+    }
+    showUser(data.session?.user ?? null);
+  });
+
+  db.auth.onAuthStateChange((_event, session) => {
+    showUser(session?.user ?? null);
+  });
+})();
+</script>
 </body>
 </html>
