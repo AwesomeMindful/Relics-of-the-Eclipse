@@ -654,6 +654,7 @@ $('accountLoad').onclick = async () => {
   snapBak();
   S = migrate(data.save_data);
   cloudSaveTimestamp = data.imported_at;
+  cloudSyncUserId = user.id;
   cloudSyncEnabled = true;
 
   save();
@@ -711,6 +712,7 @@ $('accountImport').onclick = async () => {
   }
 
   cloudSaveTimestamp = data.imported_at;
+  cloudSyncUserId = user.id;
   cloudSyncEnabled = true;
 
   $('sm').textContent = 'Save imported! Automatic cloud syncing is enabled.';
