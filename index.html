@@ -342,6 +342,9 @@ let S;
  if(raw){try{localStorage.setItem(BADK,raw)}catch(e){}}
  const y=b?parse(b):null;
  if(y){S=migrate(y);loadNote='Your save could not be read, so the latest backup was restored.'}else{S=DEF();if(raw)loadNote='Your save could not be read and there was no backup, so a fresh game was started.'}})();
+let cloudSyncTimer = null;
+let cloudSyncBusy = false;
+let cloudSyncAgain = false;
 const save=()=>{if(CH)return;if(!isFinite(S.shards))return;try{const prev=localStorage.getItem(KEY);if(prev&&Date.now()-lastBak>300000){localStorage.setItem(BAK,prev);localStorage.setItem(BAK+'-t',String(Date.now()));lastBak=Date.now()}S.v=SAVE_V;localStorage.setItem(KEY,JSON.stringify(S))}catch(e){if(!saveWarned){saveWarned=true;toast('Saving failed','Storage may be full or blocked. Export a save code to keep your progress.','')}}};
 let P={rm:!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches),cb:false,vol:1,hap:true};try{Object.assign(P,JSON.parse(localStorage.getItem(PK)||'{}'))}catch(e){}
 const saveP=()=>{try{localStorage.setItem(PK,JSON.stringify(P))}catch(e){}};
