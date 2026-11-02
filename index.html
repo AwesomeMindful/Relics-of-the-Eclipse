@@ -360,9 +360,15 @@ async function syncCloudSave() {
 
   try {
     const { data: { user }, error: authError } =
-      await db.auth.getUser();
+  await db.auth.getUser();
 
-    if (authError || !user) return;
+if (authError || !user || user.id !== cloudSyncUserId) {
+  cloudSyncEnabled = false;
+  cloudSaveTimestamp = null;
+  cloudSyncUserId = null;
+  clearTimeout(cloudSyncTimer);
+  showStatus('Cloud sync paused. Please load or import the save for this account.');
+  return;
 
     const { data, error } = await db.rpc('sync_my_save', {
       save: S,
