@@ -713,11 +713,14 @@ async function loadServerInventory(){
 
     hud();
     tiles();
-    save();
+    
+    S.v=SAVE_V;
+    localStorage.setItem(KEY,JSON.stringify(S));
 
     console.log('Server inventory loaded:',stash.length,'relics');
 
-  }catch(error){
+  }
+  catch(error){
     console.error('Inventory loading failed:',error);
   }
 } 
