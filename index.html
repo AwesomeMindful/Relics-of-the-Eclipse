@@ -360,16 +360,16 @@ async function syncCloudSave() {
 
   try {
     const { data: { user }, error: authError } =
-  await db.auth.getUser();
-
-if (authError || !user || user.id !== cloudSyncUserId) {
-  cloudSyncEnabled = false;
-  cloudSaveTimestamp = null;
-  cloudSyncUserId = null;
-  clearTimeout(cloudSyncTimer);
-  showStatus('Cloud sync paused. Please load or import the save for this account.');
-  return;
-}
+      await db.auth.getUser();
+    
+    if (authError || !user || user.id !== cloudSyncUserId) {
+      cloudSyncEnabled = false;
+      cloudSaveTimestamp = null;
+      cloudSyncUserId = null;
+      clearTimeout(cloudSyncTimer);
+      showStatus('Cloud sync paused. Please load or import the save for this account.');
+      return;
+    }
 
     const { data, error } = await db.rpc('sync_my_save', {
       save: S,
@@ -377,8 +377,13 @@ if (authError || !user || user.id !== cloudSyncUserId) {
     });
 
     if (error) {
-      showStatus('Cloud sync paused: ' + error.message);
-      cloudSyncEnabled = false;
+      if (error.message.includes('Cloud save changed elsewhere')) {
+        cloudSyncEnabled = false;
+        cloudSaveTimestamp = null;
+        showStatus('Cloud save conflict. Load the latest account save before syncing.');
+      } else {
+        showStatus('Cloud sync temporarily unavailable. Your local save is safe.');
+      }
       return;
     }
 
