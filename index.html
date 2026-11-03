@@ -554,6 +554,11 @@ async function openCase(){
       S.spent=Number(data.spent);
       S.pity=Number(data.pity);
 
+      if(serverOmen){
+        S.om2=1;
+        if(data.eclipse)S.eo=1;
+      }
+
       dp={
         i:data.item_index,
         e:Number(data.erosion),
