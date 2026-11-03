@@ -524,18 +524,21 @@ function roll(om){let r;if(S.pity>=PITY)r=rr()<.2?4:3;else{let x=rr()*100;r=0;fo
 async function openCase(){
   if(A||openCase.busy)return;
 
+  const serverChallenge=!!CH?.server;
   const serverCase=!CH&&(S.om||0)===0;
   const serverOmen=!CH&&(S.om||0)>0;
   let dp;
 
-  if(serverCase||serverOmen){
+  if(serverChallenge||serverCase||serverOmen){
     openCase.busy=true;
     $('go').disabled=true;
 
     try{
-      const {data,error}=serverOmen
-        ?await db.rpc('open_omen_case',{omen_index:S.om})
-        :await db.rpc('open_standard_case');
+      const {data,error}=serverChallenge
+        ?await db.rpc('challenge_open',{p_run_id:CH.run_id})
+        :serverOmen
+          ?await db.rpc('open_omen_case',{omen_index:S.om})
+          :await db.rpc('open_standard_case');
 
       if(error)throw error;
 
