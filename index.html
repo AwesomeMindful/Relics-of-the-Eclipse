@@ -787,6 +787,11 @@ async function openTen(){
       S.spent=Number(data.spent);
       S.pity=Number(data.pity);
 
+      if(serverOmenTen){
+        S.om2=1;
+        if(data.eclipse)S.eo=1;
+      }
+
       pulls=data.pulls.map(p=>({
         i:p.item_index,
         e:Number(p.erosion),
