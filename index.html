@@ -755,14 +755,17 @@ async function openTen(){
   if(A||openTen.busy)return;
 
   const serverTen=!CH&&(S.om||0)===0;
+  const serverOmenTen=!CH&&(S.om||0)>0;
   let pulls=[];
 
-  if(serverTen){
+  if(serverTen||serverOmenTen){
     openTen.busy=true;
     $('go10').disabled=true;
 
     try{
-      const {data,error}=await db.rpc('open_ten_standard_cases');
+     const {data,error}=serverOmenTen
+       ?await db.rpc('open_ten_omen_cases',{omen_index:S.om})
+       :await db.rpc('open_ten_standard_cases');
 
       if(error)throw error;
 
