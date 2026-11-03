@@ -542,20 +542,36 @@ async function openCase(){
 
       if(error)throw error;
 
+      const reward=serverChallenge?data?.pull:data;
+
       if(
-        !data||
-        !Number.isInteger(data.item_index)||
-        data.item_index<0||
-        data.item_index>=ITEMS.length
+        !reward||
+        !Number.isInteger(serverChallenge?reward.item_index:reward.item_index)||
+        reward.item_index<0||
+        reward.item_index>=ITEMS.length
       ){
         throw new Error('Invalid reward returned by the server.');
       }
 
       // Use the database's authoritative result.
-      S.shards=Number(data.shards);
-      S.opened=Number(data.opened);
-      S.spent=Number(data.spent);
-      S.pity=Number(data.pity);
+      if(serverChallenge){
+        S.shards=CH.budget
+          ?Number(data.remaining)
+          :5000-(((Number(data.opens)-1)%50)+1)*100;
+      
+        S.opened=Number(data.opens);
+        S.spent=Number(data.opens)*100;
+        S.pity=Number(data.pity);
+      
+        CH.opens=Number(data.opens);
+        CH.score=Number(data.score);
+        CH.done=!!data.done;
+      }else{
+        S.shards=Number(data.shards);
+        S.opened=Number(data.opened);
+        S.spent=Number(data.spent);
+        S.pity=Number(data.pity);
+      }
 
       if(serverOmen){
         S.om2=1;
@@ -563,12 +579,11 @@ async function openCase(){
       }
 
       dp={
-        i:data.item_index,
-        e:Number(data.erosion),
-        sd:Number(data.pattern_seed),
-        v:Number(data.variant)
+        i:reward.item_index,
+        e:Number(reward.erosion),
+        sd:Number(reward.pattern_seed),
+        v:Number(reward.variant)
       };
-
     }catch(err){
       console.error('Case opening failed:',err);
       $('res').textContent='Opening failed: '+err.message;
@@ -1011,12 +1026,118 @@ async function chStart(mode,sd){
 }
 function chPull(it,e,v){if(!CH||CH.done)return;CH.opens++;CH.score+=PTS[it.r]*(1.5-e)*(v?1.5:1);if(CH.mode==='pity'&&it.r===4)CH.done=true;if(CH.mode==='hunt'&&it.r>=2&&e<.05)CH.done=true}
 function chCheck(){if(!CH||A)return;if(CH.done||(CH.budget&&S.shards<COST))finish()}
-function finish(){const c=CH;CH=null;rr=()=>Math.random();const sc=c.mode==='gauntlet'||c.mode==='ironman',t=(performance.now()-c.t0)/1000,met=sc?Math.round(c.score):c.opens,key=c.mode+(c.seed?':'+c.seed:'');S=JSON.parse(c.snap);S.hs=S.hs||{};S.cc=(S.cc||0)+1;let dB=0;if(c.seed===dailyKey()&&c.mode==='gauntlet'){S.dly=S.dly||{};const k=dayKey(),first=S.dly[k]===undefined;S.dly[k]=Math.max(S.dly[k]||0,met);Object.keys(S.dly).sort().slice(0,-30).forEach(x=>delete S.dly[x]);if(first){dB=150+50*Math.min(streakOf(S),5);gain(dB)}}const pb=S.hs[key],nb=pb===undefined||(sc?met>pb:met<pb);if(nb)S.hs[key]=met;save();show=null;chUI();
- const nm=MODES.find(m=>m[0]===c.mode)[1],line=sc?'Score '+met+' from '+c.opens+' opens.':'Finished in '+c.opens+' opens and '+fmtT(t)+'.',msg='Relics of the Eclipse, '+nm+(c.seed?', seed '+c.seed:'')+': '+line+' Can you beat it?';
- const b=$('chc');b.innerHTML='<h3>Run complete</h3><p id="chl"></p><p class="sub" id="chn"></p><div class="row"><button id="chy">Copy result</button><button class="go" id="chk">Back to my collection</button></div>';
- $('chl').textContent=line+'\n'+(nb?'New personal best.':'Personal best: '+pb+(sc?' points.':' opens.'))+(dB?'\nDaily bonus: +'+fmt(dB)+' shards.':'');$('chn').textContent=c.seed?'Share the seed. Everyone who uses it gets the same pulls.':'';
- $('chy').onclick=async()=>{try{await navigator.clipboard.writeText(msg);$('chy').textContent='Copied'}catch(e){$('chn').textContent=msg}};
- $('chk').onclick=()=>{$('chm').hidden=true};$('chm').hidden=false;tiles();hud();chkAch()}
+async function finish(){
+  const c=CH;
+  if(!c||c.finishing)return;
+
+  c.finishing=true;
+
+  let serverResult=null;
+
+  if(c.server){
+    const {data,error}=await db.rpc('finish_challenge',{
+      p_run_id:c.run_id
+    });
+
+    if(error||!data){
+      console.error('Challenge completion failed:',error);
+      c.finishing=false;
+      $('res').textContent='Could not save Challenge result. Please try again.';
+      return;
+    }
+
+    serverResult=data;
+  }
+
+  CH=null;
+  rr=()=>Math.random();
+
+  const sc=c.mode==='gauntlet'||c.mode==='ironman';
+  const t=(performance.now()-c.t0)/1000;
+  const met=serverResult
+    ?Number(serverResult.metric)
+    :sc?Math.round(c.score):c.opens;
+
+  const key=c.mode+(c.seed?':'+c.seed:'');
+
+  S=JSON.parse(c.snap);
+  S.hs=S.hs||{};
+  S.cc=(S.cc||0)+1;
+
+  let dB=0;
+  let pb=S.hs[key];
+  let nb;
+
+  if(serverResult){
+    pb=serverResult.personal_best;
+    nb=!!serverResult.new_best;
+
+    if(pb!==null&&pb!==undefined)S.hs[key]=Number(pb);
+
+    dB=Number(serverResult.daily_bonus)||0;
+
+    if(c.seed===dailyKey()&&c.mode==='gauntlet'){
+      S.dly=S.dly||{};
+      S.dly[dayKey()]=met;
+      Object.keys(S.dly).sort().slice(0,-30).forEach(x=>delete S.dly[x]);
+    }
+
+    S.shards=(Number(S.shards)||0)+dB;
+  }else{
+    if(c.seed===dailyKey()&&c.mode==='gauntlet'){
+      S.dly=S.dly||{};
+      const k=dayKey();
+      const first=S.dly[k]===undefined;
+      S.dly[k]=Math.max(S.dly[k]||0,met);
+      Object.keys(S.dly).sort().slice(0,-30).forEach(x=>delete S.dly[x]);
+
+      if(first){
+        dB=150+50*Math.min(streakOf(S),5);
+        gain(dB);
+      }
+    }
+
+    nb=pb===undefined||(sc?met>pb:met<pb);
+    if(nb)S.hs[key]=met;
+  }
+
+  save();
+  show=null;
+  chUI();
+
+  const nm=MODES.find(m=>m[0]===c.mode)[1];
+  const line=sc
+    ?'Score '+met+' from '+c.opens+' opens.'
+    :'Finished in '+c.opens+' opens and '+fmtT(t)+'.';
+
+  const msg='Relics of the Eclipse, '+nm+
+    (c.seed?', seed '+c.seed:'')+': '+line+' Can you beat it?';
+
+  const b=$('chc');
+  b.innerHTML='<h3>Run complete</h3><p id="chl"></p><p class="sub" id="chn"></p><div class="row"><button id="chy">Copy result</button><button class="go" id="chk">Back to my collection</button></div>';
+
+  $('chl').textContent=line+'\n'+
+    (nb?'New personal best.':'Personal best: '+pb+(sc?' points.':' opens.'))+
+    (dB?'\nDaily bonus: +'+fmt(dB)+' shards.':'');
+
+  $('chn').textContent=c.seed?'Share the seed. Everyone who uses it gets the same pulls.':'';
+
+  $('chy').onclick=async()=>{
+    try{
+      await navigator.clipboard.writeText(msg);
+      $('chy').textContent='Copied';
+    }catch(e){
+      $('chn').textContent=msg;
+    }
+  };
+
+  $('chk').onclick=()=>{$('chm').hidden=true};
+  $('chm').hidden=false;
+
+  tiles();
+  hud();
+  chkAch();
+}
 function abandon(){if(A||!CH)return;S=JSON.parse(CH.snap);CH=null;rr=()=>Math.random();show=null;chUI();$('res').innerHTML='<p>Run abandoned. Your collection is back.</p>';hud();tiles()}
 $('chb').onclick=()=>CH?abandon():chMenu();
 setInterval(()=>{const p=$('chp');if(!CH){p.hidden=true;return}p.hidden=false;const sc=CH.mode==='gauntlet'||CH.mode==='ironman';p.textContent=MODES.find(m=>m[0]===CH.mode)[1]+(CH.seed?' #'+CH.seed:'')+': '+CH.opens+' opens, '+fmtT((performance.now()-CH.t0)/1000)+(sc?', score '+Math.round(CH.score):'')},200);
