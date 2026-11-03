@@ -772,25 +772,29 @@ function land(win,e,sd,tag,v){ac();const it=ITEMS[win],r=R[it.r],w=wearOf(e),gr=
 async function openTen(){
   if(A||openTen.busy)return;
 
+  const serverChallengeTen=!!CH?.server;
   const serverTen=!CH&&(S.om||0)===0;
   const serverOmenTen=!CH&&(S.om||0)>0;
   let pulls=[];
 
-  if(serverTen||serverOmenTen){
+  if(serverChallengeTen||serverTen||serverOmenTen){
     openTen.busy=true;
     $('go10').disabled=true;
 
     try{
-     const {data,error}=serverOmenTen
-       ?await db.rpc('open_ten_omen_cases',{omen_index:S.om})
-       :await db.rpc('open_ten_standard_cases');
+     const {data,error}=serverChallengeTen
+       ?await db.rpc('challenge_open_ten',{p_run_id:CH.run_id})
+       :serverOmenTen
+         ?await db.rpc('open_ten_omen_cases',{omen_index:S.om})
+         :await db.rpc('open_ten_standard_cases');
 
       if(error)throw error;
 
       if(
         !data||
         !Array.isArray(data.pulls)||
-        data.pulls.length!==10||
+        data.pulls.length<1||
+        data.pulls.length>10||
         data.pulls.some(p=>
           !Number.isInteger(p.item_index)||
           p.item_index<0||
@@ -800,10 +804,24 @@ async function openTen(){
         throw new Error('Invalid rewards returned by the server.');
       }
 
-      S.shards=Number(data.shards);
-      S.opened=Number(data.opened);
-      S.spent=Number(data.spent);
-      S.pity=Number(data.pity);
+      if(serverChallengeTen){
+        S.shards=CH.budget
+          ?Number(data.remaining)
+          :5000-((Number(data.opens)%50)*100);
+      
+        S.opened=Number(data.opens);
+        S.spent=Number(data.opens)*100;
+        S.pity=Number(data.pity);
+      
+        CH.opens=Number(data.opens);
+        CH.score=Number(data.score);
+        CH.done=!!data.done;
+      }else{
+        S.shards=Number(data.shards);
+        S.opened=Number(data.opened);
+        S.spent=Number(data.spent);
+        S.pity=Number(data.pity);
+      }
 
       if(serverOmenTen){
         S.om2=1;
@@ -852,7 +870,7 @@ async function openTen(){
   for(const dp of pulls){
     const {i,e,sd,v}=dp;
     ps.push({i,e,sd,v,g:grant(i,e,sd,v)});
-    chPull(ITEMS[i],e,v);
+    if(!CH?.server)chPull(ITEMS[i],e,v);
     logPull(ITEMS[i],e,v,sd);
   }
 
@@ -907,7 +925,8 @@ async function openTen(){
   hud();
   tiles();
   save();
-}
+  chCheck();
+  }
 function openInspect(i,e,sd,v){const it=ITEMS[i],r=R[it.r],w=wearOf(e),was=!!IN;IN={it,e,sd,v,px:0,py:0,tx:0,ty:0};$('ins').hidden=false;const x=$('itx');x.style.setProperty('--rar',r.c);x.innerHTML='<div class="rk"></div><h2></h2><p></p><div class="ev"></div>';x.querySelector('.rk').textContent=rn(it.r)+', '+w.n;x.querySelector('h2').textContent=it.name;x.querySelector('p').textContent=it.lore;x.querySelector('.ev').textContent='erosion '+e.toFixed(8)+extra(v,sd)+'\nMarket value now: '+fmt(net({i,e,sd:sd>0?sd:0,v:v||0}))+' shards.';if(!was)requestAnimationFrame(inspLoop)}
 function inspLoop(){if(!IN)return;const c=ic.getContext('2d'),t=performance.now()/1000;c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,420,420);IN.tx+=(IN.px-IN.tx)*.12;IN.ty+=(IN.py-IN.ty)*.12;ic.style.transform='rotateX('+-IN.ty*16+'deg) rotateY('+IN.tx*16+'deg)';
  glyph(c,IN.it,210,210,150,1,t,IN.e,IN.sd,IN.v);c.save();c.beginPath();c.arc(210,210,150,0,7);c.clip();c.globalCompositeOperation='lighter';
