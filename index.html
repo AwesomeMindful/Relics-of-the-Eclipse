@@ -954,7 +954,57 @@ function chMenu(){const b=$('chc');b.innerHTML='<h3>Challenges</h3><p class="sub
   const bt=dd.querySelector('button');bt.textContent=done!==undefined?'Play again':'Start';bt.onclick=()=>chStart('gauntlet',dailyKey());b.appendChild(dd)}
  MODES.forEach(m=>{const d=document.createElement('div'),pb=S.hs&&S.hs[m[0]];d.className='tile';d.style.cssText='margin:8px 0;padding:10px;text-align:left';d.innerHTML='<b></b><small></small><button class="go" style="font-size:14px;padding:8px 16px;margin-top:6px">Start</button>';d.querySelector('b').textContent=m[1];d.querySelector('small').textContent=m[2]+(pb===undefined?'':' Personal best: '+pb+(m[3]?' points.':' opens.'));d.querySelector('button').onclick=()=>chStart(m[0]);b.appendChild(d)});
  const x=document.createElement('button');x.textContent='Close';x.onclick=()=>{$('chm').hidden=true};b.appendChild(x);$('chm').hidden=false}
-function chStart(mode,sd){if(A)return;const seed=(sd!==undefined?sd:($('sdi')?$('sdi').value:'')).trim().slice(0,24),bud={gauntlet:1000,ironman:5000}[mode]||0;rr=seed?seedRng(seed):()=>Math.random();CH={mode,seed,snap:JSON.stringify(S),t0:performance.now(),opens:0,score:0,budget:bud,done:false};S={shards:bud||5000,opened:0,spent:0,pity:0,inv:{},best:{},stash:[],hs:{}};show=null;$('chm').hidden=true;$('res').innerHTML='<p>Run started'+(seed?' on seed '+seed:'')+'. Open the case.</p>';chUI();hud();tiles()}
+async function chStart(mode,sd){
+  if(A||CH)return;
+
+  const seed=(sd!==undefined?sd:($('sdi')?$('sdi').value:'')).trim().slice(0,24);
+
+  const {data,error}=await db.rpc('start_challenge',{
+    p_mode:mode,
+    p_seed:seed
+  });
+
+  if(error||!data||!data.run_id){
+    console.error('Challenge start failed:',error);
+    $('res').innerHTML='<p>Could not start Challenge. Please try again.</p>';
+    return;
+  }
+
+  const bud={gauntlet:1000,ironman:5000}[mode]||0;
+
+  rr=seed?seedRng(seed):()=>Math.random();
+
+  CH={
+    mode,
+    seed,
+    run_id:data.run_id,
+    snap:JSON.stringify(S),
+    t0:performance.now(),
+    opens:0,
+    score:0,
+    budget:bud,
+    done:false
+  };
+
+  S={
+    shards:bud||5000,
+    opened:0,
+    spent:0,
+    pity:0,
+    inv:{},
+    best:{},
+    stash:[],
+    hs:{}
+  };
+
+  show=null;
+  $('chm').hidden=true;
+  $('res').innerHTML='<p>Run started'+(seed?' on seed '+seed:'')+'. Open the case.</p>';
+
+  chUI();
+  hud();
+  tiles();
+}
 function chPull(it,e,v){if(!CH||CH.done)return;CH.opens++;CH.score+=PTS[it.r]*(1.5-e)*(v?1.5:1);if(CH.mode==='pity'&&it.r===4)CH.done=true;if(CH.mode==='hunt'&&it.r>=2&&e<.05)CH.done=true}
 function chCheck(){if(!CH||A)return;if(CH.done||(CH.budget&&S.shards<COST))finish()}
 function finish(){const c=CH;CH=null;rr=()=>Math.random();const sc=c.mode==='gauntlet'||c.mode==='ironman',t=(performance.now()-c.t0)/1000,met=sc?Math.round(c.score):c.opens,key=c.mode+(c.seed?':'+c.seed:'');S=JSON.parse(c.snap);S.hs=S.hs||{};S.cc=(S.cc||0)+1;let dB=0;if(c.seed===dailyKey()&&c.mode==='gauntlet'){S.dly=S.dly||{};const k=dayKey(),first=S.dly[k]===undefined;S.dly[k]=Math.max(S.dly[k]||0,met);Object.keys(S.dly).sort().slice(0,-30).forEach(x=>delete S.dly[x]);if(first){dB=150+50*Math.min(streakOf(S),5);gain(dB)}}const pb=S.hs[key],nb=pb===undefined||(sc?met>pb:met<pb);if(nb)S.hs[key]=met;save();show=null;chUI();
