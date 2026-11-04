@@ -742,6 +742,8 @@ async function loadServerInventory(){
       stash.push({i,e,sd,v});
     }
 
+    if(CH)return;
+   
     // Update local game state.
     S.shards=Number(profile.shards);
     S.opened=Number(profile.opened);
