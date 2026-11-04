@@ -1044,7 +1044,12 @@ async function chStart(mode,sd){
   tiles();
 }
 function chPull(it,e,v){if(!CH||CH.done)return;CH.opens++;CH.score+=PTS[it.r]*(1.5-e)*(v?1.5:1);if(CH.mode==='pity'&&it.r===4)CH.done=true;if(CH.mode==='hunt'&&it.r>=2&&e<.05)CH.done=true}
-function chCheck(){if(!CH||A)return;if(CH.done||(CH.budget&&S.shards<COST))finish()}
+async function chCheck(){
+  if(!CH||A)return;
+  if(CH.done||(CH.budget&&S.shards<COST)){
+    await finish();
+  }
+}
 async function finish(){
   const c=CH;
   if(!c||c.finishing)return;
